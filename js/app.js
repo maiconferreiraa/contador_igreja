@@ -14,29 +14,46 @@ dataFormatada = dataFormatada.split(', ').map(capitalizar).join(', ');
 dataFormatada = dataFormatada.replace(' De ', ' de ');
 document.getElementById('data-atual').innerText = dataFormatada;
 
-// --- LÓGICA DO FORMULÁRIO ---
+
+// --- LÓGICA DO FORMULÁRIO (ATUALIZADA) ---
+
+// 1. Armazena a URL do WhatsApp para o segundo botão
+let urlWhatsAppArmazenada = '';
+
+// 2. Pega os novos elementos
 const form = document.getElementById('contador-form');
 const btnSalvar = document.getElementById('btn-salvar');
+const btnWhatsApp = document.getElementById('btn-whatsapp');
 const msgSucesso = document.getElementById('mensagem-sucesso');
 
+// 3. Esconde o botão WhatsApp se o usuário começar a digitar de novo
+form.addEventListener('input', () => {
+    btnWhatsApp.classList.add('d-none');
+    msgSucesso.classList.add('d-none');
+});
+
+// 4. Lógica de SALVAR (ao clicar no botão submit)
 form.addEventListener('submit', async function(event) {
     event.preventDefault(); 
     btnSalvar.disabled = true;
     btnSalvar.innerText = "Salvando...";
+    
+    // Esconde botões/mensagens antigas
+    btnWhatsApp.classList.add('d-none');
+    msgSucesso.classList.add('d-none');
+    urlWhatsAppArmazenada = '';
 
-    // 1. Pegar os valores dos campos
+    // Pegar os valores dos campos
     const nomeIgreja = document.getElementById('nome-igreja').value;
     const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
     const mC = parseInt(document.getElementById('membros-cias').value) || 0;
     const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
     const vC = parseInt(document.getElementById('visitantes-cias').value) || 0;
 
-    // 2. Calcular os totais
     const totalMembros = mA + mC;
     const totalVisitantes = vA + vC;
     const totalGeral = totalMembros + totalVisitantes;
 
-    // 3. Criar o objeto de dados para salvar no Firebase
     const relatorio = {
         nomeIgreja: nomeIgreja,
         membrosAdultos: mA,
@@ -47,23 +64,18 @@ form.addEventListener('submit', async function(event) {
         totalVisitantes: totalVisitantes,
         totalGeral: totalGeral,
         dataCompleta: dataFormatada,
-        // Timestamp é essencial para filtrar por data no admin
         timestamp: Timestamp.now() 
     };
 
     try {
-        // 4. Salvar no Firestore
-        // Isso cria uma coleção chamada "contagens" (se não existir)
-        // e adiciona um documento com os dados do 'relatorio'
-        const docRef = await addDoc(collection(db, "contagens"), relatorio);
-        console.log("Documento salvo com ID: ", docRef.id);
+        // Salvar no Firestore
+        await addDoc(collection(db, "contagens"), relatorio);
         
         // Mostrar mensagem de sucesso e resetar o form
         msgSucesso.classList.remove('d-none');
         form.reset();
-        setTimeout(() => msgSucesso.classList.add('d-none'), 3000);
 
-        // 5. Formatar e abrir o WhatsApp
+        // Formatar a mensagem para o WhatsApp
         const mensagemWhats = `
 *RELATÓRIO DE PRESENÇA*
 Igreja: *${nomeIgreja}*
@@ -83,14 +95,31 @@ Crianças: ${vC}
 *TOTAL GERAL: ${totalGeral}*
         `;
         
-        const urlWhatsApp = `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
-        window.open(urlWhatsApp, '_blank');
+        // Prepara a URL e armazena
+        urlWhatsAppArmazenada = `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
+        
+        // === MOSTRA O BOTÃO DE COMPARTILHAR ===
+        btnWhatsApp.classList.remove('d-none');
+        
+        // (Removemos o 'window.open' daqui)
 
     } catch (e) {
         console.error("Erro ao adicionar documento: ", e);
         alert("Erro ao salvar os dados. Tente novamente.");
     } finally {
         btnSalvar.disabled = false;
-        btnSalvar.innerText = "Salvar e Gerar Relatório";
+        btnSalvar.innerText = "Salvar Relatório";
+    }
+});
+
+// 5. (NOVO) Lógica de COMPARTILHAR (ao clicar no segundo botão)
+btnWhatsApp.addEventListener('click', () => {
+    if (urlWhatsAppArmazenada) {
+        // Esta ação é um clique direto, não será bloqueada!
+        window.open(urlWhatsAppArmazenada, '_blank');
+        
+        // Esconde o botão após o clique para evitar cliques duplos
+        btnWhatsApp.classList.add('d-none');
+        urlWhatsAppArmazenada = ''; // Limpa a URL
     }
 });

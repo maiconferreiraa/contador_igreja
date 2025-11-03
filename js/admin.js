@@ -7,15 +7,15 @@ import {
     signOut
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-// === Funções do Firestore (ATUALIZADO) ===
+// Funções do Firestore
 import { 
     collection,
     query,
     where,
     getDocs,
     orderBy,
-    doc,        // Novo: para buscar um documento específico
-    getDoc      // Novo: para ler um documento específico
+    doc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 // Elementos da Página
@@ -47,7 +47,7 @@ const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
 
-// --- 1. VERIFICAÇÃO DE AUTENTICAÇÃO (ATUALIZADO) ---
+// --- 1. VERIFICAÇÃO DE AUTENTICAÇÃO ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         // Usuário está logado, vamos verificar quem ele é
@@ -59,10 +59,9 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- 2. (NOVO) VERIFICAR PERMISSÕES ---
+// --- 2. VERIFICAR PERMISSÕES (ATUALIZADO) ---
 async function verificarPermissoes(user) {
     try {
-        // Busca o documento do usuário na coleção 'usuarios' usando o UID
         const userDocRef = doc(db, "usuarios", user.uid);
         const userDoc = await getDoc(userDocRef);
 
@@ -82,10 +81,11 @@ async function verificarPermissoes(user) {
         if (userRole === "admin") {
             // É Admin: Mostra o filtro de igreja e carrega tudo
             filtroIgrejaContainer.classList.remove('d-none');
+            // Admin-cards-container já está visível por padrão
             carregarDadosIniciais(null); // 'null' significa "carregar tudo"
 
         } else if (userRole === "secretaria") {
-            // É Secretaria: Esconde o filtro de igreja e carrega só os dados da igreja dele
+            // É Secretaria: Esconde o filtro de igreja e os cards de admin
             const userIgreja = userData.igreja;
             if (!userIgreja) {
                  alert("Sua conta de secretaria não está associada a nenhuma igreja.");
@@ -97,6 +97,14 @@ async function verificarPermissoes(user) {
             filtroDataContainer.classList.replace('col-md-4', 'col-md-6');
             btnFiltrarContainer.classList.replace('col-md-4', 'col-md-6');
             
+            // === NOVO: Esconde os cards de admin ===
+            document.getElementById('admin-cards-container').classList.add('d-none');
+            
+            // === NOVO: Ajusta o card de relatórios restante ===
+            const relatoriosContainer = document.getElementById('card-relatorios-container');
+            relatoriosContainer.classList.remove('col-lg-4'); // Remove a classe antiga
+            relatoriosContainer.classList.add('col-lg-6'); // Faz ele ter 50% em telas grandes
+
             // Carrega os dados (com filtro)
             carregarDadosIniciais(userIgreja); // Passa o nome da igreja
 
@@ -120,21 +128,20 @@ btnLogout.addEventListener('click', () => {
     });
 });
 
-// --- 4. LÓGICA DE BUSCA DE DADOS (ATUALIZADO) ---
-// Agora a função aceita um parâmetro
+// --- 4. LÓGICA DE BUSCA DE DADOS ---
 async function carregarDadosIniciais(filtroIgrejaSecretaria) {
     try {
         let q; // Nossa consulta (query)
         
         if (filtroIgrejaSecretaria) {
-            // É SECRETARIA: Busca apenas os documentos daquela igreja
+            // É SECRETARIA
             q = query(
                 collection(db, "contagens"), 
                 where("nomeIgreja", "==", filtroIgrejaSecretaria),
                 orderBy("timestamp", "desc")
             );
         } else {
-            // É ADMIN: Busca todos os documentos
+            // É ADMIN
             q = query(collection(db, "contagens"), orderBy("timestamp", "desc"));
         }
         
@@ -146,13 +153,10 @@ async function carregarDadosIniciais(filtroIgrejaSecretaria) {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             todosOsDocumentos.push(data);
-            // O Set garante que os nomes não se repitam
             nomesDeIgrejas.add(data.nomeIgreja); 
         });
 
-        // Preenche o dropdown de igrejas (só será útil para o admin)
         preencherFiltroIgrejas();
-        // Exibe os dados na tela
         aplicarFiltros();
 
     } catch (error) {
@@ -173,10 +177,6 @@ function preencherFiltroIgrejas() {
 }
 
 // --- 6. LÓGICA DE FILTRAGEM ---
-// Esta função NÃO PRECISA MUDAR.
-// Para o Admin: ela filtra 'todosOsDocumentos' usando o dropdown.
-// Para a Secretaria: 'todosOsDocumentos' JÁ VEM FILTRADO, e o dropdown está escondido,
-// então ela só vai aplicar o filtro de data. Perfeito.
 btnFiltrar.addEventListener('click', aplicarFiltros);
 
 function aplicarFiltros() {
@@ -196,16 +196,12 @@ function aplicarFiltros() {
     }
     
     const dadosFiltrados = todosOsDocumentos.filter(doc => {
-        // Filtro de Igreja: (Para admin, funciona. Para secretaria, valorIgreja é "" e passa direto)
         const filtroIgrejaOk = (valorIgreja === "") || (doc.nomeIgreja === valorIgreja);
-        
-        // Filtro de Data
         let filtroDataOk = true;
         if (dataInicio) {
             const dataDoc = doc.timestamp.toDate();
             filtroDataOk = dataDoc >= dataInicio;
         }
-        
         return filtroIgrejaOk && filtroDataOk;
     });
 
@@ -214,7 +210,8 @@ function aplicarFiltros() {
 
 
 // --- 7. RENDERIZA OS DADOS NA TELA ---
-// Esta função também NÃO PRECISA MUDAR.
+// Esta função NÃO muda. O Admin ainda precisa que todos os totais
+// sejam calculados, mesmo que os cards estejam escondidos para a Secretaria.
 function renderizarResultados(dados) {
     tabelaResultados.innerHTML = "";
     
