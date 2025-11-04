@@ -1,9 +1,9 @@
-// Importa o 'db' do nosso arquivo de configuração
+// Importa 'db' e 'auth'
 import { db } from './firebase-config.js';
 // Importa as funções do Firestore que vamos usar
 import { collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-// --- LÓGICA DA DATA ---
+// --- LÓGICA DA DATA (COM HORÁRIO) ---
 function capitalizar(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
@@ -12,10 +12,20 @@ const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric
 let dataFormatada = hoje.toLocaleDateString('pt-BR', options);
 dataFormatada = dataFormatada.split(', ').map(capitalizar).join(', ');
 dataFormatada = dataFormatada.replace(' De ', ' de ');
+
+// === CORREÇÃO: Pega o horário ===
+const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+const horaFormatada = hoje.toLocaleTimeString('pt-BR', timeOptions); // ex: 13:39
+
+// Adiciona o horário à data formatada
+dataFormatada = `${dataFormatada} às ${horaFormatada}`;
+// =================================
+
 document.getElementById('data-atual').innerText = dataFormatada;
+// --- FIM DA LÓGICA DE DATA ---
 
-// --- LÓGICA DO FORMULÁRIO (ATUALIZADA) ---
 
+// --- LÓGICA DO FORMULÁRIO ---
 let urlWhatsAppArmazenada = '';
 
 const form = document.getElementById('contador-form');
@@ -62,7 +72,7 @@ form.addEventListener('submit', async function(event) {
         totalMembros: totalMembros,
         totalVisitantes: totalVisitantes,
         totalGeral: totalGeral,
-        dataCompleta: dataFormatada,
+        dataCompleta: dataFormatada, // Esta variável agora inclui o horário
         timestamp: Timestamp.now() 
     };
 
@@ -70,11 +80,9 @@ form.addEventListener('submit', async function(event) {
         // Salvar no Firestore
         await addDoc(collection(db, "contagens"), relatorio);
         
-        // === MUDANÇA AQUI ===
         msgSucesso.classList.remove('d-none');
         // Adiciona o timer para esconder a mensagem após 3 segundos
         setTimeout(() => msgSucesso.classList.add('d-none'), 3000);
-        // ==================
         
         form.reset(); // Reseta o formulário
 
