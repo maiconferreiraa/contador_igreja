@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Ícones do Bootstrap para os botões -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="bg-light">
 
@@ -23,17 +25,17 @@
             <p>Verificando autorização...</p>
         </div>
 
+        <!-- Conteúdo principal, escondido até o login ser verificado -->
         <main id="admin-content" class="d-none">
             
+            <!-- Filtros -->
             <div class="row g-3 align-items-end p-3 bg-white rounded shadow-sm mb-4">
-                
                 <div class="col-md-4 d-none" id="filtro-igreja-container">
                     <label for="filtro-igreja" class="form-label">Filtrar por Igreja:</label>
                     <select id="filtro-igreja" class="form-select">
                         <option value="">Todas as Igrejas</option>
                     </select>
                 </div>
-                
                 <div class="col-md-4" id="filtro-data-container">
                     <label for="filtro-data" class="form-label">Filtrar por Período:</label>
                     <select id="filtro-data" class="form-select">
@@ -43,14 +45,13 @@
                         <option value="year">Este Ano</option>
                     </select>
                 </div>
-
                 <div class="col-md-4" id="btn-filtrar-container">
                     <button id="btn-filtrar" class="btn btn-primary w-100">Filtrar</button>
                 </div>
             </div>
 
+            <!-- Cartões de Totais -->
             <div class="row g-3 mb-4">
-
                 <div class="col-md-6 col-lg-4" id="card-relatorios-container">
                     <div class="card text-center shadow-sm h-100">
                         <div class="card-body">
@@ -59,73 +60,40 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12" id="admin-cards-container">
                     <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-lg-3">
+                        <!-- Outros cartões de admin (Total Geral, Membros, etc.) -->
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title text-muted">TOTAL GERAL</h6>
-                                    <h3 class="display-6" id="total-geral">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100"><div class="card-body"><h6 class="card-title text-muted">TOTAL GERAL</h6><h3 class="display-6" id="total-geral">0</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title text-muted">TOTAL MEMBROS</h6>
-                                    <h3 class="display-6" id="total-membros">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100"><div class="card-body"><h6 class="card-title text-muted">TOTAL MEMBROS</h6><h3 class="display-6" id="total-membros">0</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title text-muted">TOTAL VISITANTES</h6>
-                                    <h3 class="display-6" id="total-visitantes">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100"><div class="card-body"><h6 class="card-title text-muted">TOTAL VISITANTES</h6><h3 class="display-6" id="total-visitantes">0</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100" style="background-color: #e6f7ff;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-primary">MEMBROS ADULTOS</h6>
-                                    <h3 class="display-6" id="total-membros-adultos">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100" style="background-color: #e6f7ff;"><div class="card-body"><h6 class="card-title text-primary">MEMBROS ADULTOS</h6><h3 class="display-6" id="total-membros-adultos">0</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100" style="background-color: #e6f7ff;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-primary">MEMBROS CIAS</h6>
-                                    <h3 class="display-6" id="total-membros-cias">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100" style="background-color: #e6f7ff;"><div class="card-body"><h6 class="card-title text-primary">MEMBROS CIAS</h6><h3 class="display-6" id="total-membros-cias">0</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100" style="background-color: #fffbe6;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-warning-dark">VISITANTES ADULTOS</h6>
-                                    <h3 class="display-6" id="total-visitantes-adultos">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100" style="background-color: #fffbe6;"><div class="card-body"><h6 class="card-title text-warning-dark">VISITANTES ADULTOS</h6><h3 class="display-6" id="total-visitantes-adultos">0</h3></div></div>
                         </div>
                         <div class="col">
-                            <div class="card text-center shadow-sm h-100" style="background-color: #fffbe6;">
-                                <div class="card-body">
-                                    <h6 class="card-title text-warning-dark">VISITANTES CIAS</h6>
-                                    <h3 class="display-6" id="total-visitantes-cias">0</h3>
-                                </div>
-                            </div>
+                            <div class="card text-center shadow-sm h-100" style="background-color: #fffbe6;"><div class="card-body"><h6 class="card-title text-warning-dark">VISITANTES CIAS</h6><h3 class="display-6" id="total-visitantes-cias">0</h3></div></div>
                         </div>
                     </div>
-                </div> </div>
+                </div> 
+            </div>
             
+            <!-- Tabela de Resultados -->
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <h4 class="mb-3">Relatórios Individuais</h4>
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover align-middle">
                             <thead>
                                 <tr>
                                     <th>Igreja</th>
@@ -135,10 +103,13 @@
                                     <th>V. Adultos</th>
                                     <th>V. Cias</th>
                                     <th>Total</th>
+                                    <!-- Coluna de Ações (escondida para Secretaria) -->
+                                    <th id="th-acoes" class="d-none">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="tabela-resultados">
-                                </tbody>
+                                <!-- Dados serão preenchidos pelo JS -->
+                            </tbody>
                         </table>
                     </div>
                     <div id="sem-resultados" class="text-center p-4 d-none">
@@ -149,6 +120,99 @@
         </main>
     </div>
 
+    <!-- ========= MODAIS (NOVOS) ========= -->
+
+    <!-- Modal de Edição -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Editar Relatório</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-form">
+                        <!-- Campo escondido para guardar o ID do documento -->
+                        <input type="hidden" id="edit-doc-id">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Igreja: <strong id="edit-nome-igreja"></strong></label><br>
+                            <label class="form-label">Data: <small id="edit-data-completa"></small></label>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h6 class_="mb-2">Membros</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="edit-membros-adultos" placeholder="Adultos" min="0" required>
+                                    <label for="edit-membros-adultos">Adultos</label>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="edit-membros-cias" placeholder="Crianças" min="0" required>
+                                    <label for="edit-membros-cias">Crianças (CIAs)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-2 mt-4">Visitantes</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="edit-visitantes-adultos" placeholder="Adultos" min="0" required>
+                                    <label for="edit-visitantes-adultos">Adultos</label>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="edit-visitantes-cias" placeholder="Crianças" min="0" required>
+                                    <label for="edit-visitantes-cias">Crianças (CIAs)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-edit">Salvar Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Você tem certeza que deseja excluir este relatório?</p>
+                    <p class="text-muted small">
+                        <strong>Igreja:</strong> <span id="delete-nome-igreja"></span><br>
+                        <strong>Data:</strong> <span id="delete-data-completa"></span>
+                    </p>
+                    <p class="text-danger">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirm-delete">Sim, Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- =================================== -->
+
+
+    <!-- Carrega o JavaScript do Bootstrap (OBRIGATÓRIO PARA MODAIS) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Nosso script (sempre por último) -->
     <script type="module" src="js/admin.js"></script>
 </body>
 </html>
