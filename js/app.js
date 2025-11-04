@@ -1,4 +1,6 @@
+// Importa o 'db' do nosso arquivo de configuração
 import { db } from './firebase-config.js';
+// Importa as funções do Firestore que vamos usar
 import { collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 // --- LÓGICA DA DATA ---
@@ -12,20 +14,24 @@ dataFormatada = dataFormatada.split(', ').map(capitalizar).join(', ');
 dataFormatada = dataFormatada.replace(' De ', ' de ');
 document.getElementById('data-atual').innerText = dataFormatada;
 
-// --- LÓGICA DO FORMULÁRIO ---
+// --- LÓGICA DO FORMULÁRIO (ATUALIZADA) ---
+
 let urlWhatsAppArmazenada = '';
+
 const form = document.getElementById('contador-form');
 const btnSalvar = document.getElementById('btn-salvar');
 const btnWhatsApp = document.getElementById('btn-whatsapp');
 const msgSucesso = document.getElementById('mensagem-sucesso');
 const msgErro = document.getElementById('mensagem-erro'); // Mensagem de erro
 
+// Esconde o botão WhatsApp se o usuário começar a digitar de novo
 form.addEventListener('input', () => {
     btnWhatsApp.classList.add('d-none');
     msgSucesso.classList.add('d-none');
     msgErro.classList.add('d-none');
 });
 
+// Lógica de SALVAR (ao clicar no botão submit)
 form.addEventListener('submit', async function(event) {
     event.preventDefault(); 
     btnSalvar.disabled = true;
@@ -36,6 +42,7 @@ form.addEventListener('submit', async function(event) {
     msgErro.classList.add('d-none');
     urlWhatsAppArmazenada = '';
 
+    // Pegar os valores dos campos
     const nomeIgreja = document.getElementById('nome-igreja').value;
     const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
     const mC = parseInt(document.getElementById('membros-cias').value) || 0;
@@ -60,16 +67,23 @@ form.addEventListener('submit', async function(event) {
     };
 
     try {
-        // AQUI É O PONTO QUE FALHA SE AS REGRAS (ETAPA 1) ESTIVEREM ERRADAS
+        // Salvar no Firestore
         await addDoc(collection(db, "contagens"), relatorio);
         
+        // === MUDANÇA AQUI ===
         msgSucesso.classList.remove('d-none');
-        form.reset();
+        // Adiciona o timer para esconder a mensagem após 3 segundos
+        setTimeout(() => msgSucesso.classList.add('d-none'), 3000);
+        // ==================
+        
+        form.reset(); // Reseta o formulário
 
+        // Formatar a mensagem para o WhatsApp
         const mensagemWhats = `
 *RELATÓRIO DE PRESENÇA*
 Igreja: *${nomeIgreja}*
 Data: _${dataFormatada}_
+
 -----------------------------------
 *MEMBROS*
 Adultos: ${mA}
@@ -85,6 +99,8 @@ Crianças: ${vC}
         `;
         
         urlWhatsAppArmazenada = `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
+        
+        // MOSTRA O BOTÃO DE COMPARTILHAR
         btnWhatsApp.classList.remove('d-none');
         
     } catch (e) {
@@ -97,6 +113,7 @@ Crianças: ${vC}
     }
 });
 
+// Lógica de COMPARTILHAR (ao clicar no segundo botão)
 btnWhatsApp.addEventListener('click', () => {
     if (urlWhatsAppArmazenada) {
         window.open(urlWhatsAppArmazenada, '_blank');
@@ -104,3 +121,4 @@ btnWhatsApp.addEventListener('click', () => {
         urlWhatsAppArmazenada = '';
     }
 });
+
