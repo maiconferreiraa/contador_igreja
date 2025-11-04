@@ -103,12 +103,13 @@ async function verificarPermissoes(user) {
         const relatoriosContainer = document.getElementById('card-relatorios-container');
         if (relatoriosContainer) {
             relatoriosContainer.classList.remove('col-lg-4', 'col-lg-5');
+            // Ajusta o layout do card restante para ocupar o espaço
             relatoriosContainer.classList.add('col-md-6', 'col-lg-6');
         }
 
         if (currentUserRole === "admin") {
             filtroIgrejaContainer.classList.remove('d-none');
-            thAcoes.classList.remove('d-none'); 
+            thAcoes.classList.remove('d-none'); // Mostra coluna "Ações"
             carregarDadosIniciais(null); 
         } else if (currentUserRole === "secretaria") {
             const userIgreja = userData.igreja;
@@ -121,6 +122,10 @@ async function verificarPermissoes(user) {
             filtroDataContainer.classList.replace('col-md-3', 'col-md-4');
             btnFiltrarContainer.classList.replace('col-md-3', 'col-md-4');
             filtroMesEspecificoContainer.classList.replace('col-md-3', 'col-md-4');
+            
+            // === MUDANÇA AQUI ===
+            thAcoes.classList.remove('d-none'); // Mostra coluna "Ações" para Secretaria
+            // ==================
 
             carregarDadosIniciais(userIgreja); 
         } else {
@@ -262,7 +267,11 @@ function renderizarResultados(dados) {
             <td>${doc.visitantesCias || 0}</td>
             <td><strong>${doc.totalGeral}</strong></td>
         `;
-        if (currentUserRole === 'admin') {
+
+        // === MUDANÇA AQUI ===
+        // Adiciona botões de Ação se for admin OU secretaria
+        if (currentUserRole === 'admin' || currentUserRole === 'secretaria') {
+        // ==================
             const tdAcoes = document.createElement('td');
             tdAcoes.innerHTML = `
                 <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${doc.id}" title="Editar">
