@@ -41,24 +41,38 @@
 
         <main id="admin-content" class="d-none">
             
-            <!-- Filtros -->
+            <!-- Filtros (COM O CAMPO DE MÊS ADICIONADO) -->
             <div class="row g-3 align-items-end p-3 bg-white rounded shadow-sm mb-4">
-                <div class="col-md-4 d-none" id="filtro-igreja-container">
+                
+                <!-- Filtro Igreja (Admin) -->
+                <div class="col-md-3 d-none" id="filtro-igreja-container">
                     <label for="filtro-igreja" class="form-label">Filtrar por Igreja:</label>
                     <select id="filtro-igreja" class="form-select">
                         <option value="">Todas as Igrejas</option>
                     </select>
                 </div>
-                <div class="col-md-4" id="filtro-data-container">
+                
+                <!-- Filtro Período -->
+                <div class="col-md-3" id="filtro-data-container">
                     <label for="filtro-data" class="form-label">Filtrar por Período:</label>
                     <select id="filtro-data" class="form-select">
                         <option value="all">Todo o período</option>
                         <option value="week">Esta Semana</option>
                         <option value="month">Este Mês</option>
                         <option value="year">Este Ano</option>
+                        <option value="specific-month">Selecionar Mês...</option>
                     </select>
                 </div>
-                <div class="col-md-4" id="btn-filtrar-container">
+
+                <!-- === CAMPO NOVO ADICIONADO === -->
+                <div class="col-md-3 d-none" id="filtro-mes-especifico-container">
+                    <label for="filtro-mes-especifico" class="form-label">Mês Específico:</label>
+                    <input type="month" id="filtro-mes-especifico" class="form-control">
+                </div>
+                <!-- ============================ -->
+
+                <!-- Botão Filtrar (redimensionado) -->
+                <div class="col-md-3" id="btn-filtrar-container">
                     <button id="btn-filtrar" class="btn btn-primary w-100">Filtrar</button>
                 </div>
             </div>
