@@ -1,24 +1,7 @@
-// Importa 'db' e 'auth'
 import { db, auth } from './firebase-config.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-// Funções de Autenticação
-import { 
-    onAuthStateChanged,
-    signOut
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
-
-// Funções do Firestore
-import { 
-    collection,
-    query,
-    where,
-    getDocs,
-    orderBy,
-    doc,
-    getDoc
-} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
-
-// Elementos da Página
 const loadingDiv = document.getElementById('loading');
 const adminContent = document.getElementById('admin-content');
 const btnLogout = document.getElementById('btn-logout');
@@ -28,7 +11,6 @@ const filtroData = document.getElementById('filtro-data');
 const tabelaResultados = document.getElementById('tabela-resultados');
 const semResultados = document.getElementById('sem-resultados');
 
-// Elementos dos Cards de Total
 const cardTotalGeral = document.getElementById('total-geral');
 const cardTotalRelatorios = document.getElementById('total-relatorios');
 const cardTotalMembros = document.getElementById('total-membros');
@@ -38,37 +20,34 @@ const cardTotalMembrosCias = document.getElementById('total-membros-cias');
 const cardTotalVisitantesAdultos = document.getElementById('total-visitantes-adultos');
 const cardTotalVisitantesCias = document.getElementById('total-visitantes-cias');
 
-// Elementos dos Filtros (para ajustar o layout)
 const filtroIgrejaContainer = document.getElementById('filtro-igreja-container');
 const filtroDataContainer = document.getElementById('filtro-data-container');
 const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
 
-// Armazena todos os documentos carregados para evitar buscas repetidas
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
 
-// --- 1. VERIFICAÇÃO DE AUTENTICAÇÃO ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Usuário está logado, vamos verificar quem ele é
         verificarPermissoes(user);
     } else {
-        // Usuário não está logado, redireciona para o login
-        console.log('Acesso negado. Redirecionando...');
+        // Redireciona se não houver usuário (é o que acontece após o signOut())
+        console.log('Acesso negado. Redirecionando para login.html');
         window.location.href = 'login.html';
     }
 });
 
-// --- 2. VERIFICAR PERMISSÕES (ATUALIZADO) ---
 async function verificarPermissoes(user) {
     try {
+        // AQUI É O PONTO QUE FALHA SE AS REGRAS (ETAPA 1) OU A PONTE (ETAPA 2) ESTIVEREM ERRADAS
         const userDocRef = doc(db, "usuarios", user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            console.error("Documento de permissão do usuário não encontrado!");
+            // CAUSA O LOOP DE LOGIN SE A "PONTE" (ETAPA 2) ESTIVER QUEBRADA
+            console.error("Documento de permissão do usuário não encontrado! (UID não bate)");
             alert("Sua conta não tem permissões definidas. Contate o administrador.");
-            signOut(auth);
+            signOut(auth); // Desloga o usuário
             return;
         }
 
@@ -79,93 +58,70 @@ async function verificarPermissoes(user) {
         adminContent.classList.remove('d-none');
 
         if (userRole === "admin") {
-            // É Admin: Mostra o filtro de igreja e carrega tudo
             filtroIgrejaContainer.classList.remove('d-none');
-            // Admin-cards-container já está visível por padrão
-            carregarDadosIniciais(null); // 'null' significa "carregar tudo"
-
+            carregarDadosIniciais(null);
         } else if (userRole === "secretaria") {
-            // É Secretaria: Esconde o filtro de igreja e os cards de admin
             const userIgreja = userData.igreja;
             if (!userIgreja) {
                  alert("Sua conta de secretaria não está associada a nenhuma igreja.");
                  signOut(auth);
                  return;
             }
-            
-            // Ajusta o layout dos filtros (data e botão ficam maiores)
             filtroDataContainer.classList.replace('col-md-4', 'col-md-6');
             btnFiltrarContainer.classList.replace('col-md-4', 'col-md-6');
-            
-            // === NOVO: Esconde os cards de admin ===
             document.getElementById('admin-cards-container').classList.add('d-none');
-            
-            // === NOVO: Ajusta o card de relatórios restante ===
             const relatoriosContainer = document.getElementById('card-relatorios-container');
-            relatoriosContainer.classList.remove('col-lg-4'); // Remove a classe antiga
-            relatoriosContainer.classList.add('col-lg-6'); // Faz ele ter 50% em telas grandes
-
-            // Carrega os dados (com filtro)
-            carregarDadosIniciais(userIgreja); // Passa o nome da igreja
-
+            relatoriosContainer.classList.remove('col-lg-4');
+            relatoriosContainer.classList.add('col-lg-6');
+            carregarDadosIniciais(userIgreja);
         } else {
             alert("Permissão desconhecida.");
             signOut(auth);
         }
 
     } catch (error) {
+        // CAUSA O LOOP DE LOGIN SE AS REGRAS (ETAPA 1) ESTIVEREM BLOQUEANDO A LEITURA
         console.error("Erro ao verificar permissões: ", error);
         alert("Erro ao verificar permissões. Tente recarregar a página.");
         signOut(auth);
     }
 }
 
-
-// --- 3. LÓGICA DE LOGOUT ---
 btnLogout.addEventListener('click', () => {
     signOut(auth).catch((error) => {
         console.error('Erro ao sair:', error);
     });
 });
 
-// --- 4. LÓGICA DE BUSCA DE DADOS ---
 async function carregarDadosIniciais(filtroIgrejaSecretaria) {
     try {
-        let q; // Nossa consulta (query)
-        
+        let q;
         if (filtroIgrejaSecretaria) {
-            // É SECRETARIA
             q = query(
                 collection(db, "contagens"), 
                 where("nomeIgreja", "==", filtroIgrejaSecretaria),
                 orderBy("timestamp", "desc")
             );
         } else {
-            // É ADMIN
             q = query(collection(db, "contagens"), orderBy("timestamp", "desc"));
         }
         
         const querySnapshot = await getDocs(q);
-        
         todosOsDocumentos = []; 
         nomesDeIgrejas.clear(); 
-
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             todosOsDocumentos.push(data);
             nomesDeIgrejas.add(data.nomeIgreja); 
         });
-
         preencherFiltroIgrejas();
         aplicarFiltros();
-
     } catch (error) {
         console.error("Erro ao buscar documentos: ", error);
-        alert("Não foi possível carregar os dados do banco.");
+        alert("Não foi possível carregar os dados do banco. (Verifique os Índices do Firestore)");
     }
 }
 
-// --- 5. PREENCHE O FILTRO DE IGREJAS ---
 function preencherFiltroIgrejas() {
     filtroIgreja.innerHTML = '<option value="">Todas as Igrejas</option>';
     nomesDeIgrejas.forEach(nome => {
@@ -176,17 +132,14 @@ function preencherFiltroIgrejas() {
     });
 }
 
-// --- 6. LÓGICA DE FILTRAGEM ---
 btnFiltrar.addEventListener('click', aplicarFiltros);
 
 function aplicarFiltros() {
     const valorIgreja = filtroIgreja.value;
     const valorData = filtroData.value;
-    
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0); 
     let dataInicio;
-
     if (valorData === 'week') {
         dataInicio = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
     } else if (valorData === 'month') {
@@ -194,7 +147,6 @@ function aplicarFiltros() {
     } else if (valorData === 'year') {
         dataInicio = new Date(hoje.getFullYear(), 0, 1);
     }
-    
     const dadosFiltrados = todosOsDocumentos.filter(doc => {
         const filtroIgrejaOk = (valorIgreja === "") || (doc.nomeIgreja === valorIgreja);
         let filtroDataOk = true;
@@ -204,24 +156,14 @@ function aplicarFiltros() {
         }
         return filtroIgrejaOk && filtroDataOk;
     });
-
     renderizarResultados(dadosFiltrados);
 }
 
-
-// --- 7. RENDERIZA OS DADOS NA TELA ---
-// Esta função NÃO muda. O Admin ainda precisa que todos os totais
-// sejam calculados, mesmo que os cards estejam escondidos para a Secretaria.
 function renderizarResultados(dados) {
     tabelaResultados.innerHTML = "";
-    
-    let totGeral = 0;
-    let totMembros = 0;
-    let totVisitantes = 0;
-    let totMembrosAdultos = 0;
-    let totMembrosCias = 0;
-    let totVisitantesAdultos = 0;
-    let totVisitantesCias = 0;
+    let totGeral = 0, totMembros = 0, totVisitantes = 0;
+    let totMembrosAdultos = 0, totMembrosCias = 0;
+    let totVisitantesAdultos = 0, totVisitantesCias = 0;
     let totRelatorios = dados.length;
 
     if (totRelatorios === 0) {
@@ -242,7 +184,6 @@ function renderizarResultados(dados) {
             <td><strong>${doc.totalGeral}</strong></td>
         `;
         tabelaResultados.appendChild(tr);
-
         totGeral += (doc.totalGeral || 0);
         totMembros += (doc.totalMembros || 0);
         totVisitantes += (doc.totalVisitantes || 0);

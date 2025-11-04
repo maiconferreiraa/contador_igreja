@@ -10,7 +10,6 @@ const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
 
 // --- VERIFICA SE JÁ ESTÁ LOGADO ---
-// Se o usuário já está logado, manda direto para o admin.html
 onAuthStateChanged(auth, (user) => {
     if (user) {
         window.location.href = 'admin.html';

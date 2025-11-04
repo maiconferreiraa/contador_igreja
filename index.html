@@ -8,6 +8,17 @@
     <style>
         body { background-color: #f0f2f5; }
         .container { max-width: 600px; }
+        /* Estilo para o botão do WhatsApp */
+        .btn-whatsapp {
+            background-color: #25D366;
+            border-color: #25D366;
+            color: white;
+        }
+        .btn-whatsapp:hover {
+            background-color: #1EAE50;
+            border-color: #1EAE50;
+            color: white;
+        }
     </style>
 </head>
 <body class="py-5">
@@ -21,6 +32,10 @@
                 
                 <div id="mensagem-sucesso" class="alert alert-success d-none" role="alert">
                   Dados salvos com sucesso!
+                </div>
+                
+                <div id="mensagem-erro" class="alert alert-danger d-none" role="alert">
+                  Erro ao salvar. Verifique as regras do Firebase.
                 </div>
 
                 <form id="contador-form">
@@ -37,6 +52,7 @@
                         </select>
                         <label for="nome-igreja">Nome da Igreja</label>
                     </div>
+
                     <h5 class="mb-2 mt-4">Membros</h5>
                     <div class="row g-2 mb-3">
                         <div class="col">
@@ -70,9 +86,14 @@
                     </div>
                     
                     <button type="submit" id="btn-salvar" class="btn btn-primary w-100 btn-lg mt-3">
-                        Salvar e Gerar Relatório
+                        Salvar Relatório
                     </button>
-                    <a href="login.html" class="btn btn-outline-secondary w-100 mt-2">Área do Admin</a>
+                    
+                    <button type="button" id="btn-whatsapp" class="btn btn-whatsapp w-100 btn-lg mt-2 d-none">
+                        Compartilhar no WhatsApp
+                    </button>
+
+                    <a href="login.html" class="btn btn-outline-secondary w-100 mt-3">Área do Admin</a>
                 </form>
             </div>
         </div>

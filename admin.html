@@ -3,97 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contador de Presença</title>
+    <title>Dashboard Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f0f2f5; }
-        .container { max-width: 600px; }
-        /* Estilo para o botão do WhatsApp */
-        .btn-whatsapp {
-            background-color: #25D366;
-            border-color: #25D366;
-            color: white;
-        }
-        .btn-whatsapp:hover {
-            background-color: #1EAE50;
-            border-color: #1EAE50;
-            color: white;
-        }
-    </style>
 </head>
-<body class="py-5">
+<body class="bg-light">
 
-    <div class="container">
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4 p-md-5">
-                <h2 class="text-center mb-3">Contador de Presença</h2>
+    <nav class="navbar navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Dashboard</a>
+            <button class="btn btn-outline-light" id="btn-logout">Sair</button>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div id="loading" class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p>Verificando autorização...</p>
+        </div>
+
+        <main id="admin-content" class="d-none">
+            
+            <div class="row g-3 align-items-end p-3 bg-white rounded shadow-sm mb-4">
                 
-                <div id="data-atual" class="text-center text-primary fw-bold mb-4"></div>
+                <div class="col-md-4 d-none" id="filtro-igreja-container">
+                    <label for="filtro-igreja" class="form-label">Filtrar por Igreja:</label>
+                    <select id="filtro-igreja" class="form-select">
+                        <option value="">Todas as Igrejas</option>
+                    </select>
+                </div>
                 
-                <div id="mensagem-sucesso" class="alert alert-success d-none" role="alert">
-                  Dados salvos com sucesso!
+                <div class="col-md-4" id="filtro-data-container">
+                    <label for="filtro-data" class="form-label">Filtrar por Período:</label>
+                    <select id="filtro-data" class="form-select">
+                        <option value="all">Todo o período</option>
+                        <option value="week">Esta Semana</option>
+                        <option value="month">Este Mês</option>
+                        <option value="year">Este Ano</option>
+                    </select>
                 </div>
 
-                <form id="contador-form">
-                    
-                    <div class="form-floating mb-3">
-                        <select class="form-select" id="nome-igreja" aria-label="Nome da Igreja" required>
-                            <option value="" selected disabled>Selecione a Igreja</option>
-                            <option value="LAGOA SANTA - CENTRO">LAGOA SANTA - CENTRO</option>
-                            <option value="LAGOA SANTA - VÁRZEA">LAGOA SANTA - VÁRZEA</option>
-                            <option value="PEDRO LEOPOLDO - CENTRO">PEDRO LEOPOLDO - CENTRO</option>
-                            <option value="PEDRO LEOPOLDO - FELIPE CLÁUDIO">PEDRO LEOPOLDO - FELIPE CLÁUDIO</option>
-                            <option value="SÃO JOSE DA LAPA">SÃO JOSE DA LAPA</option>
-                            <option value="VESPASIANO">VESPASIANO</option>
-                        </select>
-                        <label for="nome-igreja">Nome da Igreja</label>
-                    </div>
-
-                    <h5 class="mb-2 mt-4">Membros</h5>
-                    <div class="row g-2 mb-3">
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="membros-adultos" placeholder="Adultos" min="0" value="0" required>
-                                <label for="membros-adultos">Adultos</LAbel>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="membros-cias" placeholder="Crianças" min="0" value="0" required>
-                                <label for="membros-cias">Crianças (CIAs)</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h5 class="mb-2 mt-4">Visitantes</h5>
-                    <div class="row g-2 mb-3">
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="visitantes-adultos" placeholder="Adultos" min="0" value="0" required>
-                                <label for="visitantes-adultos">Adultos</label>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="visitantes-cias" placeholder="Crianças" min="0" value="0" required>
-                                <label for="visitantes-cias">Crianças (CIAs)</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" id="btn-salvar" class="btn btn-primary w-100 btn-lg mt-3">
-                        Salvar Relatório
-                    </button>
-                    
-                    <button type="button" id="btn-whatsapp" class="btn btn-whatsapp w-100 btn-lg mt-2 d-none">
-                        Compartilhar no WhatsApp
-                    </button>
-                    <a href="login.html" class="btn btn-outline-secondary w-100 mt-3">Área do Admin</a>
-                </form>
+                <div class="col-md-4" id="btn-filtrar-container">
+                    <button id="btn-filtrar" class="btn btn-primary w-100">Filtrar</button>
+                </div>
             </div>
-        </div>
+
+            <div class="row g-3 mb-4">
+
+                <div class="col-md-6 col-lg-4" id="card-relatorios-container">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Nº DE RELATÓRIOS</h6>
+                            <h3 class="display-6" id="total-relatorios">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12" id="admin-cards-container">
+                    <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-lg-3">
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-muted">TOTAL GERAL</h6>
+                                    <h3 class="display-6" id="total-geral">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-muted">TOTAL MEMBROS</h6>
+                                    <h3 class="display-6" id="total-membros">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-muted">TOTAL VISITANTES</h6>
+                                    <h3 class="display-6" id="total-visitantes">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100" style="background-color: #e6f7ff;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">MEMBROS ADULTOS</h6>
+                                    <h3 class="display-6" id="total-membros-adultos">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100" style="background-color: #e6f7ff;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">MEMBROS CIAS</h6>
+                                    <h3 class="display-6" id="total-membros-cias">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100" style="background-color: #fffbe6;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-warning-dark">VISITANTES ADULTOS</h6>
+                                    <h3 class="display-6" id="total-visitantes-adultos">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card text-center shadow-sm h-100" style="background-color: #fffbe6;">
+                                <div class="card-body">
+                                    <h6 class="card-title text-warning-dark">VISITANTES CIAS</h6>
+                                    <h3 class="display-6" id="total-visitantes-cias">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> </div>
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h4 class="mb-3">Relatórios Individuais</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Igreja</th>
+                                    <th>Data</th>
+                                    <th>M. Adultos</th>
+                                    <th>M. Cias</th>
+                                    <th>V. Adultos</th>
+                                    <th>V. Cias</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela-resultados">
+                                </tbody>
+                        </table>
+                    </div>
+                    <div id="sem-resultados" class="text-center p-4 d-none">
+                        <p class="text-muted">Nenhum resultado encontrado para este filtro.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/admin.js"></script>
 </body>
 </html>
