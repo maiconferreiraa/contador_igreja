@@ -3,15 +3,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebas
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-// COLE SUAS CONFIGURAÇÕES DO FIREBASE AQUI
+// COLE SUAS CONFIGURAÇÕES REAIS DO FIREBASE AQUI
 const firebaseConfig = {
-  apiKey: "SEU_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_STORAGE_BUCKET",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyA5xHIDyvrW4f76vGEcZSk57e7G77uTN84",
+  authDomain: "contadoricm.firebaseapp.com",
+  projectId: "contadoricm",
+  storageBucket: "contadoricm.firebasestorage.app",
+  messagingSenderId: "517227834185",
+  appId: "1:517227834185:web:661d0176a25fae7ec14898"
 };
+// ===============================================
 
 // Inicializar o Firebase
 const app = initializeApp(firebaseConfig);

@@ -1,7 +1,24 @@
+// Importa 'db' e 'auth'
 import { db, auth } from './firebase-config.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
+// Funções de Autenticação
+import { 
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+// Funções do Firestore
+import { 
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    doc,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
+// (O resto dos 'getElementById' está aqui... igual ao anterior)
 const loadingDiv = document.getElementById('loading');
 const adminContent = document.getElementById('admin-content');
 const btnLogout = document.getElementById('btn-logout');
@@ -10,7 +27,6 @@ const filtroIgreja = document.getElementById('filtro-igreja');
 const filtroData = document.getElementById('filtro-data');
 const tabelaResultados = document.getElementById('tabela-resultados');
 const semResultados = document.getElementById('sem-resultados');
-
 const cardTotalGeral = document.getElementById('total-geral');
 const cardTotalRelatorios = document.getElementById('total-relatorios');
 const cardTotalMembros = document.getElementById('total-membros');
@@ -19,40 +35,49 @@ const cardTotalMembrosAdultos = document.getElementById('total-membros-adultos')
 const cardTotalMembrosCias = document.getElementById('total-membros-cias');
 const cardTotalVisitantesAdultos = document.getElementById('total-visitantes-adultos');
 const cardTotalVisitantesCias = document.getElementById('total-visitantes-cias');
-
 const filtroIgrejaContainer = document.getElementById('filtro-igreja-container');
 const filtroDataContainer = document.getElementById('filtro-data-container');
 const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
-
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
 
+// --- 1. VERIFICAÇÃO DE AUTENTICAÇÃO ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
+        // Usuário está logado, vamos verificar quem ele é
         verificarPermissoes(user);
     } else {
-        // Redireciona se não houver usuário (é o que acontece após o signOut())
-        console.log('Acesso negado. Redirecionando para login.html');
+        // Usuário não está logado, redireciona para o login
+        console.log('DEBUG: Usuário não está logado (ou foi deslogado). Redirecionando para login.html');
         window.location.href = 'login.html';
     }
 });
 
+// --- 2. VERIFICAR PERMISSÕES ---
 async function verificarPermissoes(user) {
+    
+    // === DEBUG 1: MOSTRA O UID QUE ESTAMOS USANDO ===
+    console.log("DEBUG: Verificando permissões para o UID:", user.uid);
+
     try {
-        // AQUI É O PONTO QUE FALHA SE AS REGRAS (ETAPA 1) OU A PONTE (ETAPA 2) ESTIVEREM ERRADAS
         const userDocRef = doc(db, "usuarios", user.uid);
         const userDoc = await getDoc(userDocRef);
 
+        // === DEBUG 2: MOSTRA SE O DOCUMENTO FOI ENCONTRADO ===
+        console.log("DEBUG: Documento encontrado no Firestore?", userDoc.exists());
+
         if (!userDoc.exists()) {
-            // CAUSA O LOOP DE LOGIN SE A "PONTE" (ETAPA 2) ESTIVER QUEBRADA
-            console.error("Documento de permissão do usuário não encontrado! (UID não bate)");
-            alert("Sua conta não tem permissões definidas. Contate o administrador.");
+            console.error("DEBUG: FALHA! Documento de permissão do usuário não encontrado! (UID não bate)");
+            alert("Sua conta não tem permissões definidas. Verifique o Firestore.");
             signOut(auth); // Desloga o usuário
             return;
         }
 
         const userData = userDoc.data();
         const userRole = userData.role;
+
+        // === DEBUG 3: MOSTRA O CARGO ENCONTRADO ===
+        console.log("DEBUG: Cargo (role) encontrado:", userRole);
 
         loadingDiv.classList.add('d-none');
         adminContent.classList.remove('d-none');
@@ -80,19 +105,22 @@ async function verificarPermissoes(user) {
         }
 
     } catch (error) {
-        // CAUSA O LOOP DE LOGIN SE AS REGRAS (ETAPA 1) ESTIVEREM BLOQUEANDO A LEITURA
-        console.error("Erro ao verificar permissões: ", error);
-        alert("Erro ao verificar permissões. Tente recarregar a página.");
+        // === DEBUG 4: MOSTRA SE HOUVE UM ERRO NAS REGRAS ===
+        console.error("DEBUG: FALHA! Erro ao verificar permissões (provavelmente as Regras do Firestore): ", error.message);
+        alert("Erro ao verificar permissões. Verifique as Regras do Firestore.");
         signOut(auth);
     }
 }
 
+
+// --- 3. LÓGICA DE LOGOUT ---
 btnLogout.addEventListener('click', () => {
     signOut(auth).catch((error) => {
         console.error('Erro ao sair:', error);
     });
 });
 
+// --- 4. LÓGICA DE BUSCA DE DADOS ---
 async function carregarDadosIniciais(filtroIgrejaSecretaria) {
     try {
         let q;
@@ -122,6 +150,7 @@ async function carregarDadosIniciais(filtroIgrejaSecretaria) {
     }
 }
 
+// --- 5. PREENCHE O FILTRO DE IGREJAS ---
 function preencherFiltroIgrejas() {
     filtroIgreja.innerHTML = '<option value="">Todas as Igrejas</option>';
     nomesDeIgrejas.forEach(nome => {
@@ -132,8 +161,8 @@ function preencherFiltroIgrejas() {
     });
 }
 
+// --- 6. LÓGICA DE FILTRAGEM ---
 btnFiltrar.addEventListener('click', aplicarFiltros);
-
 function aplicarFiltros() {
     const valorIgreja = filtroIgreja.value;
     const valorData = filtroData.value;
@@ -159,6 +188,8 @@ function aplicarFiltros() {
     renderizarResultados(dadosFiltrados);
 }
 
+
+// --- 7. RENDERIZA OS DADOS NA TELA ---
 function renderizarResultados(dados) {
     tabelaResultados.innerHTML = "";
     let totGeral = 0, totMembros = 0, totVisitantes = 0;
