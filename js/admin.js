@@ -39,7 +39,8 @@ const filtroDataContainer = document.getElementById('filtro-data-container');
 const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
 const thAcoes = document.getElementById('th-acoes'); 
 
-// === NOVO ELEMENTO ===
+// === CAMPO DE MÊS (AGORA ENCONTRADO) ===
+const filtroMesEspecificoContainer = document.getElementById('filtro-mes-especifico-container');
 const filtroMesEspecifico = document.getElementById('filtro-mes-especifico');
 
 // --- Referências aos Modais ---
@@ -93,7 +94,7 @@ async function verificarPermissoes(user) {
         loadingDiv.classList.add('d-none');
         adminContent.classList.remove('d-none');
         
-        // Esconde cards extras (se existirem no HTML)
+        // Esconde cards extras (se existirem no HTML antigo)
         const adminCards = document.getElementById('admin-cards-container');
         if (adminCards) {
             adminCards.classList.add('d-none');
@@ -102,7 +103,7 @@ async function verificarPermissoes(user) {
         const relatoriosContainer = document.getElementById('card-relatorios-container');
         if (relatoriosContainer) {
             relatoriosContainer.classList.remove('col-lg-4', 'col-lg-5');
-            relatoriosContainer.classList.add('col-lg-6');
+            relatoriosContainer.classList.add('col-md-6', 'col-lg-6');
         }
 
         if (currentUserRole === "admin") {
@@ -116,8 +117,11 @@ async function verificarPermissoes(user) {
                  signOut(auth); 
                  return;
             }
-            filtroDataContainer.classList.replace('col-md-4', 'col-md-6');
-            btnFiltrarContainer.classList.replace('col-md-4', 'col-md-6');
+            // Ajusta layout dos filtros para Secretaria
+            filtroDataContainer.classList.replace('col-md-3', 'col-md-4');
+            btnFiltrarContainer.classList.replace('col-md-3', 'col-md-4');
+            filtroMesEspecificoContainer.classList.replace('col-md-3', 'col-md-4');
+
             carregarDadosIniciais(userIgreja); 
         } else {
             alert("Permissão desconhecida.");
@@ -181,12 +185,12 @@ function preencherFiltroIgrejas() {
 
 // --- 6. LÓGICA DE FILTRAGEM (ATUALIZADA) ---
 
-// NOVO: Evento para mostrar/esconder o input de mês
+// Evento para mostrar/esconder o input de mês
 filtroData.addEventListener('change', () => {
     if (filtroData.value === 'specific-month') {
-        filtroMesEspecifico.classList.remove('d-none');
+        filtroMesEspecificoContainer.classList.remove('d-none');
     } else {
-        filtroMesEspecifico.classList.add('d-none');
+        filtroMesEspecificoContainer.classList.add('d-none');
     }
 });
 
@@ -202,49 +206,35 @@ function aplicarFiltros() {
     hoje.setHours(0, 0, 0, 0); 
 
     if (valorData === 'week') {
-        // Início da semana (Domingo)
         dataInicio = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
-        dataFim = new Date(); // Agora
+        dataFim = new Date(); 
         dataFim.setHours(23, 59, 59, 999);
     } else if (valorData === 'month') {
-        // Início deste mês
         dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-        // Fim deste mês
-        dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0); // Dia 0 do prox. mês
+        dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0); 
         dataFim.setHours(23, 59, 59, 999);
     } else if (valorData === 'year') {
-        // 1º de Janeiro deste ano
         dataInicio = new Date(hoje.getFullYear(), 0, 1);
-        // 31 de Dezembro deste ano
         dataFim = new Date(hoje.getFullYear(), 11, 31);
         dataFim.setHours(23, 59, 59, 999);
     } else if (valorData === 'specific-month') {
         if (!valorMesEspecifico) {
             alert("Por favor, selecione um mês para filtrar.");
-            return; // Para a execução do filtro
+            return; 
         }
-        // valorMesEspecifico é "YYYY-MM" (ex: "2025-11")
         const [ano, mes] = valorMesEspecifico.split('-').map(Number);
-        // Início do mês (Mês no JS é 0-indexado, então mes - 1)
         dataInicio = new Date(ano, mes - 1, 1);
-        // Fim do mês (Dia 0 do mês seguinte)
         dataFim = new Date(ano, mes, 0); 
         dataFim.setHours(23, 59, 59, 999);
     }
-    // Se valorData === 'all', dataInicio e dataFim continuam indefinidos
 
-    // Aplica os filtros
     const dadosFiltrados = todosOsDocumentos.filter(doc => {
-        // 1. Filtro de Igreja
         const filtroIgrejaOk = (valorIgreja === "") || (doc.nomeIgreja === valorIgreja);
-        
-        // 2. Filtro de Data
-        let filtroDataOk = true; // Assume 'true' para "Todo o período"
+        let filtroDataOk = true; 
         if (dataInicio && dataFim) {
             const dataDoc = doc.timestamp.toDate();
             filtroDataOk = dataDoc >= dataInicio && dataDoc <= dataFim;
         }
-        
         return filtroIgrejaOk && filtroDataOk;
     });
 
@@ -354,49 +344,33 @@ btnSaveEdit.addEventListener('click', async () => {
 });
 
 // --- 10. LÓGICA DE EXCLUSÃO (CORRIGIDA) ---
-let idParaExcluir = null; // Guarda o ID para o botão de confirmação
-
+let idParaExcluir = null; 
 function abrirModalExclusao(id) {
     const docParaExcluir = todosOsDocumentos.find(doc => doc.id === id);
     if (!docParaExcluir) return;
-
-    // Preenche os dados no modal de confirmação
     document.getElementById('delete-nome-igreja').innerText = docParaExcluir.nomeIgreja;
     document.getElementById('delete-data-completa').innerText = docParaExcluir.dataCompleta;
-    
-    // Guarda o ID que queremos excluir
-    idParaExcluir = id; // <--- CORREÇÃO 1: Definir o ID
-    
-    deleteModal.show(); // <--- CORREÇÃO 2: Mostrar o modal
+    idParaExcluir = id; 
+    deleteModal.show(); 
 }
 
-btnConfirmDelete.addEventListener('click', async () => { // <--- CORREÇÃO 3: Lógica movida para cá
+btnConfirmDelete.addEventListener('click', async () => { 
     if (!idParaExcluir) return;
-
     btnConfirmDelete.disabled = true;
     btnConfirmDelete.innerText = "Excluindo...";
-    
-    // Encontra o nome da igreja ANTES de excluir (para poder recarregar a lista da secretaria)
     const docExcluido = todosOsDocumentos.find(doc => doc.id === idParaExcluir);
     const nomeIgreja = docExcluido?.nomeIgreja;
-
     try {
         const docRef = doc(db, "contagens", idParaExcluir);
-        
-        // Envia o comando de exclusão
         await deleteDoc(docRef);
-        
         deleteModal.hide();
-        
-        // Recarrega os dados
         const filtroIgrejaAdmin = currentUserRole === 'admin' ? null : nomeIgreja;
         carregarDadosIniciais(filtroIgrejaAdmin);
-
     } catch (error) {
         console.error("Erro ao excluir documento: ", error);
         alert("Falha ao excluir. Verifique as regras do Firestore.");
     } finally {
-        idParaExcluir = null; // Limpa o ID
+        idParaExcluir = null; 
         btnConfirmDelete.disabled = false;
         btnConfirmDelete.innerText = "Sim, Excluir";
     }
