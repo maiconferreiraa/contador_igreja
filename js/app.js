@@ -13,7 +13,7 @@ let dataFormatada = hoje.toLocaleDateString('pt-BR', options);
 dataFormatada = dataFormatada.split(', ').map(capitalizar).join(', ');
 dataFormatada = dataFormatada.replace(' De ', ' de ');
 
-// === CORREÇÃO: Pega o horário ===
+// === Pega o horário ===
 const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
 const horaFormatada = hoje.toLocaleTimeString('pt-BR', timeOptions); // ex: 13:39
 
@@ -54,6 +54,7 @@ form.addEventListener('submit', async function(event) {
 
     // Pegar os valores dos campos
     const nomeIgreja = document.getElementById('nome-igreja').value;
+    const tipoCulto = document.getElementById('tipo-culto').value; // NOVO CAMPO
     const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
     const mC = parseInt(document.getElementById('membros-cias').value) || 0;
     const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
@@ -65,6 +66,7 @@ form.addEventListener('submit', async function(event) {
 
     const relatorio = {
         nomeIgreja: nomeIgreja,
+        tipoCulto: tipoCulto, // NOVO CAMPO
         membrosAdultos: mA,
         membrosCias: mC,
         visitantesAdultos: vA,
@@ -90,6 +92,7 @@ form.addEventListener('submit', async function(event) {
         const mensagemWhats = `
 *RELATÓRIO DE PRESENÇA*
 Igreja: *${nomeIgreja}*
+Culto: *${tipoCulto}*
 Data: _${dataFormatada}_
 
 -----------------------------------

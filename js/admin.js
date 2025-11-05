@@ -39,7 +39,7 @@ const filtroDataContainer = document.getElementById('filtro-data-container');
 const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
 const thAcoes = document.getElementById('th-acoes'); 
 
-// === CAMPO DE MÊS (AGORA ENCONTRADO) ===
+// === CAMPO DE MÊS ===
 const filtroMesEspecificoContainer = document.getElementById('filtro-mes-especifico-container');
 const filtroMesEspecifico = document.getElementById('filtro-mes-especifico');
 
@@ -123,8 +123,8 @@ async function verificarPermissoes(user) {
             btnFiltrarContainer.classList.replace('col-md-3', 'col-md-4');
             filtroMesEspecificoContainer.classList.replace('col-md-3', 'col-md-4');
             
-            // === MUDANÇA AQUI ===
-            thAcoes.classList.remove('d-none'); // Mostra coluna "Ações" para Secretaria
+            // === MUDANÇA: Mostra coluna "Ações" para Secretaria ===
+            thAcoes.classList.remove('d-none');
             // ==================
 
             carregarDadosIniciais(userIgreja); 
@@ -247,7 +247,7 @@ function aplicarFiltros() {
 }
 
 
-// --- 7. RENDERIZA OS DADOS NA TELA (Simplificado) ---
+// --- 7. RENDERIZA OS DADOS NA TELA (com 'tipoCulto') ---
 function renderizarResultados(dados) {
     tabelaResultados.innerHTML = "";
     let totRelatorios = dados.length;
@@ -260,6 +260,7 @@ function renderizarResultados(dados) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${doc.nomeIgreja}</td>
+            <td>${doc.tipoCulto || 'N/D'}</td> <!-- MOSTRA O TIPO DE CULTO -->
             <td>${doc.dataCompleta}</td>
             <td>${doc.membrosAdultos || 0}</td>
             <td>${doc.membrosCias || 0}</td>
@@ -268,10 +269,8 @@ function renderizarResultados(dados) {
             <td><strong>${doc.totalGeral}</strong></td>
         `;
 
-        // === MUDANÇA AQUI ===
         // Adiciona botões de Ação se for admin OU secretaria
         if (currentUserRole === 'admin' || currentUserRole === 'secretaria') {
-        // ==================
             const tdAcoes = document.createElement('td');
             tdAcoes.innerHTML = `
                 <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${doc.id}" title="Editar">
@@ -301,13 +300,17 @@ tabelaResultados.addEventListener('click', (e) => {
     }
 });
 
-// --- 9. LÓGICA DE EDIÇÃO ---
+// --- 9. LÓGICA DE EDIÇÃO (com 'tipoCulto') ---
 function abrirModalEdicao(id) {
     const docParaEditar = todosOsDocumentos.find(doc => doc.id === id);
     if (!docParaEditar) return;
     document.getElementById('edit-doc-id').value = id;
     document.getElementById('edit-nome-igreja').innerText = docParaEditar.nomeIgreja;
     document.getElementById('edit-data-completa').innerText = docParaEditar.dataCompleta;
+    
+    // Define o valor do 'tipoCulto' no modal
+    document.getElementById('edit-tipo-culto').value = docParaEditar.tipoCulto || 'CULTO DIÁRIO';
+
     document.getElementById('edit-membros-adultos').value = docParaEditar.membrosAdultos;
     document.getElementById('edit-membros-cias').value = docParaEditar.membrosCias;
     document.getElementById('edit-visitantes-adultos').value = docParaEditar.visitantesAdultos;
@@ -321,14 +324,20 @@ btnSaveEdit.addEventListener('click', async () => {
     btnSaveEdit.disabled = true;
     btnSaveEdit.innerText = "Salvando...";
     try {
+        // Pega os novos valores do formulário
+        const tipoCulto = document.getElementById('edit-tipo-culto').value; // PEGA O NOVO CAMPO
         const mA = parseInt(document.getElementById('edit-membros-adultos').value) || 0;
         const mC = parseInt(document.getElementById('edit-membros-cias').value) || 0;
         const vA = parseInt(document.getElementById('edit-visitantes-adultos').value) || 0;
         const vC = parseInt(document.getElementById('edit-visitantes-cias').value) || 0;
+        
+        // Recalcula os totais
         const totalMembros = mA + mC;
         const totalVisitantes = vA + vC;
         const totalGeral = totalMembros + totalVisitantes;
+
         const dadosAtualizados = {
+            tipoCulto: tipoCulto, // SALVA O NOVO CAMPO
             membrosAdultos: mA,
             membrosCias: mC,
             visitantesAdultos: vA,
@@ -337,9 +346,11 @@ btnSaveEdit.addEventListener('click', async () => {
             totalVisitantes: totalVisitantes,
             totalGeral: totalGeral,
         };
+        
         const docRef = doc(db, "contagens", id);
         await updateDoc(docRef, dadosAtualizados);
         editModal.hide();
+        
         const docAtualizado = todosOsDocumentos.find(doc => doc.id === id);
         const filtroIgrejaAdmin = currentUserRole === 'admin' ? null : docAtualizado?.nomeIgreja;
         carregarDadosIniciais(filtroIgrejaAdmin);

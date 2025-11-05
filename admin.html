@@ -79,6 +79,7 @@
 
             <!-- Card Simplificado -->
             <div class="row g-3 mb-4 justify-content-center">
+                <!-- O ID aqui foi corrigido para corresponder ao JS -->
                 <div class="col-md-6 col-lg-5" id="card-relatorios-container">
                     <div class="card text-center shadow-sm h-100">
                         <div class="card-body">
@@ -98,6 +99,7 @@
                             <thead>
                                 <tr>
                                     <th>Igreja</th>
+                                    <th>Tipo de Culto</th> <!-- NOVA COLUNA -->
                                     <th>Data</th>
                                     <th>M. Adultos</th>
                                     <th>M. Cias</th>
@@ -137,6 +139,22 @@
                             <label class="form-label">Igreja: <strong id="edit-nome-igreja"></strong></label><br>
                             <label class="form-label">Data: <small id="edit-data-completa"></small></label>
                         </div>
+                        
+                        <!-- NOVO CAMPO DE EDIÇÃO: TIPO DE CULTO -->
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="edit-tipo-culto" aria-label="Tipo de Culto" required>
+                                <option value="CULTO DIÁRIO">CULTO DIÁRIO</option>
+                                <option value="CEIA">CEIA</option>
+                                <option value="VIGÍLIA">VIGÍLIA</option>
+                                <option value="LEVANTAMENTO">LEVANTAMENTO</option>
+                                <option value="EVANGELIZAÇÃO CIAS">EVANGELIZAÇÃO CIAS</option>
+                                <option value="PROMOÇÃO DE CLASSES">PROMOÇÃO DE CLASSES</option>
+                                <option value="CULTO ESPECIAL">CULTO ESPECIAL</option>
+                            </select>
+                            <label for="edit-tipo-culto">Tipo de Culto</label>
+                        </div>
+                        <!-- FIM DO NOVO CAMPO -->
+
                         <hr>
                         <h6 class="mb-2">Membros</h6>
                         <div class="row g-2 mb-3">
