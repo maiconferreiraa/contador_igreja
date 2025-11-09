@@ -98,12 +98,12 @@ Data: _${dataFormatada}_
 -----------------------------------
 *MEMBROS*
 Adultos: ${mA}
-Classes: ${mC}
+Classes (Cias): ${mC}
 *Total Membros: ${totalMembros}*
 -----------------------------------
 *VISITANTES*
 Adultos: ${vA}
-Classes: ${vC}
+Classes (Cias): ${vC}
 *Total Visitantes: ${totalVisitantes}*
 -----------------------------------
 *TOTAL GERAL: ${totalGeral}*
