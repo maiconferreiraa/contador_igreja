@@ -11,7 +11,7 @@ const msgSucesso = document.getElementById('mensagem-sucesso');
 const msgErro = document.getElementById('mensagem-erro');
 const dataAtualEl = document.getElementById('data-atual');
 
-// --- LÓGICA DO TOTALIZADOR EM TEMPO REAL ---
+// === LÓGICA DO TOTALIZADOR EM TEMPO REAL ===
 
 // Pega os 4 campos de input
 const inputsContagem = [
@@ -21,8 +21,8 @@ const inputsContagem = [
     document.getElementById('visitantes-cias')
 ];
 
-// Pega o campo de display (que está no admin.html, mas não aqui)
-// Vamos precisar adicionar o campo total no index.html
+// Pega o campo de display do total
+const totalGeralDisplay = document.getElementById('total-geral-display');
 
 // Função para atualizar o total
 function atualizarTotalDisplay() {
@@ -31,13 +31,17 @@ function atualizarTotalDisplay() {
         total += parseInt(input.value) || 0;
     });
     
-    // (O campo de display de total não está neste HTML, então pulamos)
+    // Atualiza o valor no campo de total (somente leitura)
+    if (totalGeralDisplay) {
+        totalGeralDisplay.value = total;
+    }
 }
 
 // Adiciona o "escutador" para cada input
 inputsContagem.forEach(input => {
     input.addEventListener('input', atualizarTotalDisplay);
 });
+// =======================================
 
 
 // --- LÓGICA DA DATA (Exibição inicial) ---
@@ -154,7 +158,7 @@ Classes (Cias): ${vC}
     } catch (e) {
         console.error("Erro ao adicionar documento: ", e);
         msgErro.innerText = "Erro ao salvar. Verifique as Regras do Firestore ou sua conexão.";
-        msgErro.classList.remove('d-none');
+        msgErro.classList.add('d-none');
     } finally {
         btnSalvar.disabled = false;
         btnSalvar.innerText = "Salvar Relatório";

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<!-- O atributo data-bs-theme="dark" ativa o tema escuro -->
+<html lang="pt-BR" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,20 +14,26 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #f0f2f5;
+            /* Fundo escuro padrão */
+            background-color: var(--bs-dark);
         }
         .login-card {
             width: 100%;
             max-width: 400px;
         }
-        /* NOVO CSS PARA POSICIONAR O ÍCONE */
+        /* Cor do card no tema escuro */
+        .card {
+            background-color: var(--bs-gray-dark);
+        }
+        /* CSS PARA POSICIONAR O ÍCONE */
         .password-icon {
             position: absolute;
             right: 15px;
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
-            color: #6c757d; /* Cinza 'text-muted' */
+            /* Cor do ícone no tema escuro */
+            color: var(--bs-secondary-color); 
         }
     </style>
 </head>
