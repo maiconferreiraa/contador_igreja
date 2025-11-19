@@ -16,13 +16,12 @@ const tipoCultoSelect = document.getElementById('tipo-culto');
 const camposCultoPadrao = document.getElementById('campos-culto-padrao');
 const camposTrombetas = document.getElementById('campos-trombetas');
 
-// Containers específicos de CIAs para esconder no Culto Diário
+// Containers específicos de CIAs para esconder (exceto na EBD)
 const containerMembrosCias = document.getElementById('container-membros-cias');
 const containerVisitantesCias = document.getElementById('container-visitantes-cias');
 
 // --- LÓGICA DO TOTALIZADOR EM TEMPO REAL ---
 
-// Inputs Padrão (AGORA INCLUI CIAS NOVAMENTE)
 const inputsContagemPadrao = [
     document.getElementById('membros-adultos'),
     document.getElementById('membros-cias'),
@@ -30,7 +29,6 @@ const inputsContagemPadrao = [
     document.getElementById('visitantes-cias')
 ];
 
-// Inputs Trombetas (8 campos)
 const inputsContagemTrombetas = [
     document.getElementById('trombetas-membros-criancas'),
     document.getElementById('trombetas-membros-intermediarios'),
@@ -42,79 +40,67 @@ const inputsContagemTrombetas = [
     document.getElementById('trombetas-visitantes-adultos')
 ];
 
-// Pega o campo de display do total
 const totalGeralDisplay = document.getElementById('total-geral-display');
 
-// Função para atualizar o total
 function atualizarTotalDisplay() {
     let total = 0;
     const tipoCulto = tipoCultoSelect.value;
 
     if (tipoCulto === "TROMBETAS E FESTAS") {
-        // Soma os 8 campos de Trombetas
         inputsContagemTrombetas.forEach(input => {
             total += parseInt(input.value) || 0;
         });
     } else {
-        // Soma os 4 campos Padrão
-        // No Culto Diário, os inputs de CIAs estarão zerados e escondidos, então a soma funcionará igual
+        // Soma os 4 campos Padrão (mesmo que escondidos/zerados)
         inputsContagemPadrao.forEach(input => {
             total += parseInt(input.value) || 0;
         });
     }
     
-    // Atualiza o valor no campo de total (somente leitura)
     if (totalGeralDisplay) {
         totalGeralDisplay.value = total;
     }
 }
 
-// Adiciona o "escutador" para todos os inputs
+// Adiciona o evento de input para recalcular em tempo real
 [...inputsContagemPadrao, ...inputsContagemTrombetas].forEach(input => {
     input.addEventListener('input', atualizarTotalDisplay);
 });
-// =======================================
-
 
 // --- LÓGICA DE EXIBIÇÃO CONDICIONAL ---
 tipoCultoSelect.addEventListener('change', () => {
     const tipoCulto = tipoCultoSelect.value;
     
-    // Reseta visibilidade (esconde tudo primeiro)
+    // 1. Reseta tudo primeiro (esconde tudo)
     camposCultoPadrao.classList.add('d-none');
     camposTrombetas.classList.add('d-none');
-    // Garante que os containers de CIA voltem a aparecer caso venham de um "Diário"
-    containerMembrosCias.classList.remove('d-none');
-    containerVisitantesCias.classList.remove('d-none');
+    containerMembrosCias.classList.add('d-none');
+    containerVisitantesCias.classList.add('d-none');
 
+    // 2. Aplica a lógica
     if (tipoCulto === "TROMBETAS E FESTAS") {
-        // Mostra apenas Trombetas
+        // CASO 1: TROMBETAS
         camposTrombetas.classList.remove('d-none');
         
-    } else if (tipoCulto === "CULTO DIÁRIO") {
-        // Mostra Padrão, mas ESCONDE CIAs especificamente
+    } else if (tipoCulto === "EBD") {
+        // CASO 2: EBD (Único que mostra CIAs e Adultos)
         camposCultoPadrao.classList.remove('d-none');
-        containerMembrosCias.classList.add('d-none');
-        containerVisitantesCias.classList.add('d-none');
-        
-        // Zera os valores de CIAs para não afetar a soma
-        document.getElementById('membros-cias').value = 0;
-        document.getElementById('visitantes-cias').value = 0;
+        containerMembrosCias.classList.remove('d-none');
+        containerVisitantesCias.classList.remove('d-none');
 
     } else {
-        // Para todos os outros (EBD, CEIA, VIGÍLIA, etc)
-        // Mostra Padrão COMPLETO (com CIAs visíveis)
+        // CASO 3: TODOS OS OUTROS (Diário, Ceia, Vigília, Casamento, etc.)
+        // Mostra padrão, mas ESCONDE CIAs
         camposCultoPadrao.classList.remove('d-none');
+        // Garante que CIAs estão zerados
+        document.getElementById('membros-cias').value = 0;
+        document.getElementById('visitantes-cias').value = 0;
     }
     
-    // Atualiza o total ao trocar o tipo de culto
     atualizarTotalDisplay(); 
 });
-// =======================================
 
-
-// --- LÓGICA DA DATA (Exibição inicial) ---
-// Mostra a data atual (sem hora) quando a página carrega
+// --- LÓGICA DA DATA ---
 function capitalizar(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
@@ -125,18 +111,15 @@ dataFormatadaInicial = dataFormatadaInicial.split(', ').map(capitalizar).join(',
 dataFormatadaInicial = dataFormatadaInicial.replace(' De ', ' de ');
 dataAtualEl.innerText = dataFormatadaInicial;
 
-
 // --- LÓGICA DO FORMULÁRIO (SALVAR) ---
 let urlWhatsAppArmazenada = '';
 
-// Esconde o botão WhatsApp se o usuário começar a digitar de novo
 form.addEventListener('input', () => {
     btnWhatsApp.classList.add('d-none');
     msgSucesso.classList.add('d-none');
     msgErro.classList.add('d-none');
 });
 
-// Lógica de SALVAR (ao clicar no botão submit)
 form.addEventListener('submit', async function(event) {
     event.preventDefault(); 
     btnSalvar.disabled = true;
@@ -147,7 +130,6 @@ form.addEventListener('submit', async function(event) {
     msgErro.classList.add('d-none');
     urlWhatsAppArmazenada = '';
 
-    // === Pega a data e hora EXATAS do clique ===
     const hoje = new Date(); 
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     let dataFormatada = hoje.toLocaleDateString('pt-BR', options);
@@ -156,13 +138,10 @@ form.addEventListener('submit', async function(event) {
     const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
     const horaFormatada = hoje.toLocaleTimeString('pt-BR', timeOptions); 
     dataFormatada = `${dataFormatada} às ${horaFormatada}`;
-    // ===============================================
 
-    // Pegar os valores dos campos
     const nomeIgreja = document.getElementById('nome-igreja').value;
     const tipoCulto = document.getElementById('tipo-culto').value; 
 
-    // Objeto base do relatório
     const relatorio = {
         nomeIgreja: nomeIgreja,
         tipoCulto: tipoCulto,
@@ -193,8 +172,8 @@ Data: _${dataFormatada}_
 
 -----------------------------------`;
 
-    // === CASO 1: TROMBETAS ===
     if (tipoCulto === "TROMBETAS E FESTAS") {
+        // === TROMBETAS (Completo) ===
         const mC = parseInt(document.getElementById('trombetas-membros-criancas').value) || 0;
         const mI = parseInt(document.getElementById('trombetas-membros-intermediarios').value) || 0;
         const mAd = parseInt(document.getElementById('trombetas-membros-adolescentes').value) || 0;
@@ -204,7 +183,6 @@ Data: _${dataFormatada}_
         const vAd = parseInt(document.getElementById('trombetas-visitantes-adolescentes').value) || 0;
         const vA = parseInt(document.getElementById('trombetas-visitantes-adultos').value) || 0;
 
-        // Salva no objeto 'relatorio'
         relatorio.trombetasMembrosCriancas = mC;
         relatorio.trombetasMembrosIntermediarios = mI;
         relatorio.trombetasMembrosAdolescentes = mAd;
@@ -240,41 +218,8 @@ Adultos: ${vA}
 *TOTAL GERAL: ${relatorio.totalGeral}*
         `;
 
-    // === CASO 2: CULTO DIÁRIO (Sem CIAs) ===
-    } else if (tipoCulto === "CULTO DIÁRIO") {
-        const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
-        const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
-        // CIAs são ignorados (0)
-        const mC = 0;
-        const vC = 0;
-
-        relatorio.membrosAdultos = mA;
-        relatorio.membrosCias = mC; 
-        relatorio.visitantesAdultos = vA;
-        relatorio.visitantesCias = vC; 
-
-        const totalMembros = mA;
-        const totalVisitantes = vA;
-        relatorio.totalMembros = totalMembros;
-        relatorio.totalVisitantes = totalVisitantes;
-        relatorio.totalGeral = totalMembros + totalVisitantes;
-
-        mensagemWhats += `
-*MEMBROS*
-Adultos: ${mA}
-*Total Membros: ${totalMembros}*
-
------------------------------------
-*VISITANTES*
-Adultos: ${vA}
-*Total Visitantes: ${totalVisitantes}*
-
------------------------------------
-*TOTAL GERAL: ${relatorio.totalGeral}*
-        `;
-
-    // === CASO 3: EBD, CEIA, VIGÍLIA (Completo com CIAs) ===
-    } else {
+    } else if (tipoCulto === "EBD") {
+        // === EBD (Membros e CIAs) ===
         const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
         const mC = parseInt(document.getElementById('membros-cias').value) || 0;
         const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
@@ -306,29 +251,53 @@ Classes (Cias): ${vC}
 -----------------------------------
 *TOTAL GERAL: ${relatorio.totalGeral}*
         `;
+
+    } else {
+        // === TODOS OS OUTROS (Apenas Membros e Visitantes - SEM CIAs) ===
+        const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
+        const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
+        const mC = 0;
+        const vC = 0;
+
+        relatorio.membrosAdultos = mA;
+        relatorio.membrosCias = mC; 
+        relatorio.visitantesAdultos = vA;
+        relatorio.visitantesCias = vC; 
+
+        const totalMembros = mA;
+        const totalVisitantes = vA;
+        relatorio.totalMembros = totalMembros;
+        relatorio.totalVisitantes = totalVisitantes;
+        relatorio.totalGeral = totalMembros + totalVisitantes;
+
+        // MENSAGEM MODIFICADA: Apenas "Membros" e "Visitantes" (Sem a palavra Adulto)
+        mensagemWhats += `
+*MEMBROS*: ${mA}
+
+*VISITANTES*: ${vA}
+
+-----------------------------------
+*TOTAL GERAL: ${relatorio.totalGeral}*
+        `;
     }
 
     try {
         await addDoc(collection(db, "contagens"), relatorio);
-        
         msgSucesso.classList.remove('d-none');
         setTimeout(() => msgSucesso.classList.add('d-none'), 3000);
         
         form.reset(); 
         atualizarTotalDisplay(); 
         
-        // Força o disparo do evento change para resetar a interface visual para o estado inicial
-        // Isso garante que se o formulário resetar para "Selecione...", os campos fiquem corretos
+        // Força o reset visual da lógica de campos
         tipoCultoSelect.dispatchEvent(new Event('change'));
 
         urlWhatsAppArmazenada = `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
-        
         btnWhatsApp.classList.remove('d-none');
         
     } catch (e) {
         console.error("Erro ao adicionar documento: ", e);
-        msgErro.innerText = "Erro ao salvar. Verifique as Regras do Firestore ou sua conexão.";
-        msgErro.classList.add('d-none');
+        msgErro.classList.remove('d-none');
     } finally {
         btnSalvar.disabled = false;
         btnSalvar.innerText = "Salvar Relatório";

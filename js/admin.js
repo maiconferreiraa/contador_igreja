@@ -38,10 +38,10 @@ const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
 const filtroMesEspecificoContainer = document.getElementById('filtro-mes-especifico-container');
 const filtroMesEspecifico = document.getElementById('filtro-mes-especifico');
 
-// --- NOVAS REFERÊNCIAS (3 TABELAS) ---
-const tabelaResultadosDiarios = document.getElementById('tabela-resultados-diarios');
-const semResultadosDiarios = document.getElementById('sem-resultados-diarios');
-const thAcoesDiarios = document.getElementById('th-acoes-diarios'); 
+// --- Referências Tabelas ---
+const tabelaResultadosGerais = document.getElementById('tabela-resultados-gerais');
+const semResultadosGerais = document.getElementById('sem-resultados-gerais');
+const thAcoesGerais = document.getElementById('th-acoes-gerais'); 
 
 const tabelaResultadosEBD = document.getElementById('tabela-resultados-ebd');
 const semResultadosEBD = document.getElementById('sem-resultados-ebd');
@@ -53,12 +53,10 @@ const thAcoesTrombetas = document.getElementById('th-acoes-trombetas');
 
 // --- Referências aos Modais ---
 const editModalEl = document.getElementById('editModal');
-const editModal = new bootstrap.Modal(editModalEl); 
+const deleteModalEl = document.getElementById('deleteModal');
+
 const btnSaveEdit = document.getElementById('btn-save-edit');
 const editForm = document.getElementById('edit-form');
-
-const deleteModalEl = document.getElementById('deleteModal');
-const deleteModal = new bootstrap.Modal(deleteModalEl); 
 const btnConfirmDelete = document.getElementById('btn-confirm-delete');
 
 // Referências (Modal de Edição Condicional)
@@ -73,6 +71,7 @@ const editContainerVisitantesCias = document.getElementById('edit-container-visi
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
 let currentUserRole = null; 
+let idParaExcluir = null; // Variável CRÍTICA para a exclusão
 
 // --- 1. VERIFICAÇÃO DE AUTENTICAÇÃO ---
 onAuthStateChanged(auth, (user) => {
@@ -101,7 +100,6 @@ async function verificarPermissoes(user) {
         loadingDiv.classList.add('d-none');
         adminContent.classList.remove('d-none');
         
-        // Ajusta layout do card restante
         const relatoriosContainer = document.getElementById('card-relatorios-container');
         if (relatoriosContainer) {
             relatoriosContainer.classList.remove('col-lg-4', 'col-lg-5');
@@ -110,7 +108,7 @@ async function verificarPermissoes(user) {
 
         if (currentUserRole === "admin") {
             filtroIgrejaContainer.classList.remove('d-none');
-            thAcoesDiarios.classList.remove('d-none');
+            thAcoesGerais.classList.remove('d-none');
             thAcoesEBD.classList.remove('d-none');
             thAcoesTrombetas.classList.remove('d-none');
             carregarDadosIniciais(null); 
@@ -125,7 +123,7 @@ async function verificarPermissoes(user) {
             btnFiltrarContainer.classList.replace('col-md-3', 'col-md-4');
             filtroMesEspecificoContainer.classList.replace('col-md-3', 'col-md-4');
             
-            thAcoesDiarios.classList.remove('d-none');
+            thAcoesGerais.classList.remove('d-none');
             thAcoesEBD.classList.remove('d-none');
             thAcoesTrombetas.classList.remove('d-none'); 
 
@@ -141,7 +139,6 @@ async function verificarPermissoes(user) {
         signOut(auth);
     }
 }
-
 
 // --- 3. LÓGICA DE LOGOUT ---
 btnLogout.addEventListener('click', () => {
@@ -179,7 +176,6 @@ async function carregarDadosIniciais(filtroIgrejaSecretaria) {
     }
 }
 
-// --- 5. PREENCHE O FILTRO DE IGREJAS ---
 function preencherFiltroIgrejas() {
     filtroIgreja.innerHTML = '<option value="">Todas as Igrejas</option>';
     nomesDeIgrejas.forEach(nome => {
@@ -191,7 +187,6 @@ function preencherFiltroIgrejas() {
 }
 
 // --- 6. LÓGICA DE FILTRAGEM ---
-
 filtroData.addEventListener('change', () => {
     if (filtroData.value === 'specific-month') {
         filtroMesEspecificoContainer.classList.remove('d-none');
@@ -248,39 +243,34 @@ function aplicarFiltros() {
 }
 
 
-// --- 7. RENDERIZA OS DADOS NAS TABELAS (3 TABELAS) ---
-
+// --- 7. RENDERIZA OS DADOS NAS TABELAS ---
 function renderizarTabelas(dados) {
-    // Divide os dados em 3 grupos
-    const dadosDiarios = [];
+    const dadosGerais = [];
     const dadosEBD = [];
     const dadosTrombetas = [];
     
     dados.forEach(doc => {
         if (doc.tipoCulto === "TROMBETAS E FESTAS") {
             dadosTrombetas.push(doc);
-        } else if (doc.tipoCulto === "CULTO DIÁRIO") {
-            dadosDiarios.push(doc);
-        } else {
-            // Todos os outros (EBD, CEIA, VIGÍLIA, ETC) que usam CIAs
+        } else if (doc.tipoCulto === "EBD") {
             dadosEBD.push(doc);
+        } else {
+            dadosGerais.push(doc);
         }
     });
 
     cardTotalRelatorios.innerText = dados.length;
-    
-    renderizarTabelaDiarios(dadosDiarios);
+    renderizarTabelaGerais(dadosGerais);
     renderizarTabelaEBD(dadosEBD);
     renderizarTabelaTrombetas(dadosTrombetas);
 }
 
-// 1. Tabela Diários (Simplificada)
-function renderizarTabelaDiarios(dados) {
-    tabelaResultadosDiarios.innerHTML = "";
+function renderizarTabelaGerais(dados) {
+    tabelaResultadosGerais.innerHTML = "";
     if (dados.length === 0) {
-        semResultadosDiarios.classList.remove('d-none');
+        semResultadosGerais.classList.remove('d-none');
     } else {
-        semResultadosDiarios.classList.add('d-none');
+        semResultadosGerais.classList.add('d-none');
     }
     dados.forEach(doc => {
         const tr = document.createElement('tr');
@@ -293,11 +283,10 @@ function renderizarTabelaDiarios(dados) {
             <td><strong>${doc.totalGeral}</strong></td>
         `;
         addAcoes(tr, doc.id);
-        tabelaResultadosDiarios.appendChild(tr);
+        tabelaResultadosGerais.appendChild(tr);
     });
 }
 
-// 2. Tabela EBD/Especiais (Detalhada)
 function renderizarTabelaEBD(dados) {
     tabelaResultadosEBD.innerHTML = "";
     if (dados.length === 0) {
@@ -322,7 +311,6 @@ function renderizarTabelaEBD(dados) {
     });
 }
 
-// 3. Tabela Trombetas (Complexa)
 function renderizarTabelaTrombetas(dados) {
     tabelaResultadosTrombetas.innerHTML = "";
     if (dados.length === 0) {
@@ -350,7 +338,6 @@ function renderizarTabelaTrombetas(dados) {
     });
 }
 
-// Helper para adicionar botões
 function addAcoes(tr, id) {
     if (currentUserRole === 'admin' || currentUserRole === 'secretaria') {
         const tdAcoes = document.createElement('td');
@@ -372,10 +359,12 @@ document.getElementById('relatoriosTabContent').addEventListener('click', (e) =>
     const target = e.target.closest('button'); 
     if (!target) return; 
     const docId = target.dataset.id; 
+    
     if (target.classList.contains('btn-edit')) {
         abrirModalEdicao(docId);
     }
     if (target.classList.contains('btn-delete')) {
+        console.log("Botão Lixeira Clicado para ID:", docId);
         abrirModalExclusao(docId);
     }
 });
@@ -385,7 +374,6 @@ editTipoCultoSelect.addEventListener('change', toggleEditCampos);
 
 function toggleEditCampos() {
     const tipo = editTipoCultoSelect.value;
-    // Reset
     editCamposPadrao.classList.add('d-none');
     editCamposTrombetas.classList.add('d-none');
     if (editContainerMembrosCias) editContainerMembrosCias.classList.remove('d-none');
@@ -393,14 +381,12 @@ function toggleEditCampos() {
 
     if (tipo === "TROMBETAS E FESTAS") {
         editCamposTrombetas.classList.remove('d-none');
-    } else if (tipo === "CULTO DIÁRIO") {
+    } else if (tipo === "EBD") {
         editCamposPadrao.classList.remove('d-none');
-        // Esconde CIAs no modal também
+    } else {
+        editCamposPadrao.classList.remove('d-none');
         if (editContainerMembrosCias) editContainerMembrosCias.classList.add('d-none');
         if (editContainerVisitantesCias) editContainerVisitantesCias.classList.add('d-none');
-    } else {
-        // EBD e outros
-        editCamposPadrao.classList.remove('d-none');
     }
 }
 
@@ -413,7 +399,6 @@ function abrirModalEdicao(id) {
     document.getElementById('edit-data-completa').innerText = docParaEditar.dataCompleta;
     editTipoCultoSelect.value = docParaEditar.tipoCulto || "CULTO DIÁRIO";
 
-    // Preenche todos os campos
     document.getElementById('edit-membros-adultos').value = docParaEditar.membrosAdultos || 0;
     document.getElementById('edit-membros-cias').value = docParaEditar.membrosCias || 0;
     document.getElementById('edit-visitantes-adultos').value = docParaEditar.visitantesAdultos || 0;
@@ -429,6 +414,9 @@ function abrirModalEdicao(id) {
     document.getElementById('edit-trombetas-visitantes-adultos').value = docParaEditar.trombetasVisitantesAdultos || 0;
 
     toggleEditCampos(); 
+    
+    // USA window.bootstrap para garantir acesso global e evitar erro "undefined"
+    const editModal = window.bootstrap.Modal.getOrCreateInstance(editModalEl);
     editModal.show();
 }
 
@@ -472,7 +460,7 @@ btnSaveEdit.addEventListener('click', async () => {
             const vA = parseInt(document.getElementById('edit-visitantes-adultos').value) || 0;
             let mC = 0, vC = 0;
 
-            if (tipoCulto !== "CULTO DIÁRIO") {
+            if (tipoCulto === "EBD") {
                 mC = parseInt(document.getElementById('edit-membros-cias').value) || 0;
                 vC = parseInt(document.getElementById('edit-visitantes-cias').value) || 0;
             }
@@ -495,7 +483,10 @@ btnSaveEdit.addEventListener('click', async () => {
         const dadosFinais = { ...docOriginal, ...dadosAtualizados };
 
         await updateDoc(docRef, dadosFinais);
-        editModal.hide();
+        
+        const editModal = window.bootstrap.Modal.getInstance(editModalEl);
+        if (editModal) editModal.hide();
+
         const docAtualizado = todosOsDocumentos.find(doc => doc.id === id);
         const filtroIgrejaAdmin = currentUserRole === 'admin' ? null : docAtualizado?.nomeIgreja;
         carregarDadosIniciais(filtroIgrejaAdmin);
@@ -510,30 +501,54 @@ btnSaveEdit.addEventListener('click', async () => {
 });
 
 
-// --- 10. EXCLUSÃO ---
-let idParaExcluir = null; 
+// --- 10. EXCLUSÃO (ATUALIZADA) ---
 function abrirModalExclusao(id) {
+    console.log("Abrindo Modal de Exclusão para:", id);
     const docParaExcluir = todosOsDocumentos.find(doc => doc.id === id);
-    if (!docParaExcluir) return;
+    if (!docParaExcluir) {
+        console.error("Documento não encontrado na memória!");
+        return;
+    }
+    
     document.getElementById('delete-nome-igreja').innerText = docParaExcluir.nomeIgreja;
     document.getElementById('delete-data-completa').innerText = docParaExcluir.dataCompleta;
-    idParaExcluir = id; 
+    idParaExcluir = id; // Salva o ID na variável global
+    console.log("ID salvo na variável global:", idParaExcluir);
+    
+    // USA window.bootstrap para abrir o modal
+    const deleteModal = window.bootstrap.Modal.getOrCreateInstance(deleteModalEl);
     deleteModal.show();
 }
+
 btnConfirmDelete.addEventListener('click', async () => { 
-    if (!idParaExcluir) return;
+    console.log("Botão Sim, Excluir clicado. ID Alvo:", idParaExcluir);
+    
+    if (!idParaExcluir) {
+        console.error("Erro: ID para excluir é nulo!");
+        return;
+    }
+    
     btnConfirmDelete.disabled = true;
     btnConfirmDelete.innerText = "Excluindo...";
+    
     const docExcluido = todosOsDocumentos.find(doc => doc.id === idParaExcluir);
     const nomeIgreja = docExcluido?.nomeIgreja;
+    
     try {
-        await deleteDoc(doc(db, "contagens", idParaExcluir));
-        deleteModal.hide();
+        console.log("Enviando comando deleteDoc para o Firebase...");
+        const docRef = doc(db, "contagens", idParaExcluir);
+        await deleteDoc(docRef);
+        console.log("Documento excluído com sucesso do Firebase.");
+        
+        // Fecha o modal
+        const deleteModal = window.bootstrap.Modal.getInstance(deleteModalEl);
+        if (deleteModal) deleteModal.hide();
+        
         const filtroIgrejaAdmin = currentUserRole === 'admin' ? null : nomeIgreja;
         carregarDadosIniciais(filtroIgrejaAdmin);
     } catch (error) {
-        console.error("Erro ao excluir: ", error);
-        alert("Falha ao excluir.");
+        console.error("Erro FATAL ao excluir: ", error);
+        alert("Falha ao excluir. Verifique o Console (F12) para detalhes.");
     } finally {
         idParaExcluir = null; 
         btnConfirmDelete.disabled = false;

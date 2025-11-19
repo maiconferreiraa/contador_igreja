@@ -91,17 +91,18 @@
                         <label for="tipo-culto">Tipo de Culto</label>
                     </div>
 
-                    <!-- === CAMPOS PADRÃO (Adultos E CIAs) === -->
+                    <!-- === CAMPOS PADRÃO === -->
                     <div id="campos-culto-padrao">
                         <h5 class="mb-2 mt-4">Membros</h5>
                         <div class="row g-2 mb-3">
                             <div class="col">
                                 <div class="form-floating">
-                                    <input type="number" class="form-control" id="membros-adultos" placeholder="Adultos" min="0" value="0">
-                                    <label for="membros-adultos">Adultos</label>
+                                    <!-- Rótulo alterado de "Adultos" para "Quantidade" (remove a palavra Adulto) -->
+                                    <input type="number" class="form-control" id="membros-adultos" placeholder="Quantidade" min="0" value="0">
+                                    <label for="membros-adultos">Quantidade</label>
                                 </div>
                             </div>
-                            <!-- ID adicionado para esconder este campo específico no Culto Diário -->
+                            <!-- ID para esconder no Diário/Geral (Aparece só na EBD) -->
                             <div class="col" id="container-membros-cias">
                                 <div class="form-floating">
                                     <input type="number" class="form-control" id="membros-cias" placeholder="Crianças" min="0" value="0">
@@ -114,11 +115,12 @@
                         <div class="row g-2 mb-3">
                             <div class="col">
                                 <div class="form-floating">
-                                    <input type="number" class="form-control" id="visitantes-adultos" placeholder="Adultos" min="0" value="0">
-                                    <label for="visitantes-adultos">Adultos</label>
+                                    <!-- Rótulo alterado de "Adultos" para "Quantidade" -->
+                                    <input type="number" class="form-control" id="visitantes-adultos" placeholder="Quantidade" min="0" value="0">
+                                    <label for="visitantes-adultos">Quantidade</label>
                                 </div>
                             </div>
-                            <!-- ID adicionado para esconder este campo específico no Culto Diário -->
+                            <!-- ID para esconder no Diário/Geral (Aparece só na EBD) -->
                             <div class="col" id="container-visitantes-cias">
                                 <div class="form-floating">
                                     <input type="number" class="form-control" id="visitantes-cias" placeholder="Crianças" min="0" value="0">
