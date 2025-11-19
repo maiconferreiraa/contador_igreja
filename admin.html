@@ -12,8 +12,14 @@
     <style>
         body {
             /* Fundo escuro padrão */
-            background-color: var(--bs-body-bg);
+            background-color: var(--bs-dark);
         }
+        .container { max-width: 95%; }
+        /* Cor do card no tema escuro */
+        .card {
+            background-color: var(--bs-gray-dark);
+        }
+        
         .table-responsive {
             max-height: 60vh; 
             overflow-y: auto; 
@@ -23,16 +29,21 @@
             top: 0;            
             z-index: 1;        
             /* Cor de fundo do cabeçalho no tema escuro */
-            background-color: var(--bs-body-bg); 
-            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+            background-color: var(--bs-dark-bg-subtle); 
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
         }
-        /* Ajusta o input de mês para o tema escuro */
-        input[type="month"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
+        /* Ajuste para as abas */
+        .nav-tabs .nav-link {
+            color: var(--bs-secondary-color);
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--bs-emphasis-color);
+            background-color: var(--bs-gray-dark);
+            border-bottom-color: var(--bs-gray-dark);
         }
     </style>
 </head>
-<body class="bg-body-tertiary"> <!-- Usa a cor de fundo do Bootstrap -->
+<body class="py-5">
 
     <nav class="navbar navbar-dark bg-dark shadow-sm">
         <div class="container-fluid">
@@ -51,8 +62,8 @@
 
         <main id="admin-content" class="d-none">
             
-            <!-- === FILTROS ATUALIZADOS === -->
-            <div class="row g-3 align-items-end p-3 bg-body-secondary rounded shadow-sm mb-4">
+            <!-- === FILTROS === -->
+            <div class="row g-3 align-items-end p-3 card shadow-sm mb-4">
                 
                 <!-- Filtro Igreja (Admin) -->
                 <div class="col-md-3 d-none" id="filtro-igreja-container">
@@ -74,14 +85,13 @@
                     </select>
                 </div>
 
-                <!-- === CAMPO DE MÊS === -->
+                <!-- Campo de Mês -->
                 <div class="col-md-3 d-none" id="filtro-mes-especifico-container">
                     <label for="filtro-mes-especifico" class="form-label">Mês Específico:</label>
                     <input type="month" id="filtro-mes-especifico" class="form-control">
                 </div>
-                <!-- =============================== -->
 
-                <!-- Botão Filtrar (redimensionado) -->
+                <!-- Botão Filtrar -->
                 <div class="col-md-3" id="btn-filtrar-container">
                     <button id="btn-filtrar" class="btn btn-primary w-100">Filtrar</button>
                 </div>
@@ -92,42 +102,142 @@
                 <div class="col-md-6 col-lg-5" id="card-relatorios-container">
                     <div class="card text-center shadow-sm h-100">
                         <div class="card-body">
-                            <h6 class="card-title text-muted">Nº DE RELATÓRIOS</h6>
+                            <h6 class="card-title text-muted">Nº DE RELATÓRIOS (Filtrados)</h6>
                             <h3 class="display-6" id="total-relatorios">0</h3>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Tabela de Resultados -->
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h4 class="mb-3">Relatórios Individuais</h4>
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Igreja</th>
-                                    <th>Tipo de Culto</th> <!-- NOVA COLUNA -->
-                                    <th>Data</th>
-                                    <th>M. Adultos</th>
-                                    <th>M. Cias</th>
-                                    <th>V. Adultos</th>
-                                    <th>V. Cias</th>
-                                    <th>Total</th>
-                                    <th id="th-acoes" class="d-none">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabela-resultados">
-                                <!-- Dados serão preenchidos pelo JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="sem-resultados" class="text-center p-4 d-none">
-                        <p class="text-muted">Nenhum resultado encontrado para este filtro.</p>
+            <!-- === NAVEGAÇÃO EM ABAS (AGORA SÃO 3) === -->
+            <ul class="nav nav-tabs" id="relatoriosTab" role="tablist">
+                
+                <!-- ABA 1: DIÁRIOS -->
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="diarios-tab" data-bs-toggle="tab" data-bs-target="#relatorios-diarios" type="button" role="tab" aria-controls="relatorios-diarios" aria-selected="true">
+                        Cultos Diários
+                    </button>
+                </li>
+                
+                <!-- ABA 2: EBD e OUTROS (NOVO) -->
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ebd-tab" data-bs-toggle="tab" data-bs-target="#relatorios-ebd" type="button" role="tab" aria-controls="relatorios-ebd" aria-selected="false">
+                        EBD e Especiais
+                    </button>
+                </li>
+
+                <!-- ABA 3: TROMBETAS -->
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="trombetas-tab" data-bs-toggle="tab" data-bs-target="#relatorios-trombetas" type="button" role="tab" aria-controls="relatorios-trombetas" aria-selected="false">
+                        Trombetas e Festas
+                    </button>
+                </li>
+            </ul>
+            <!-- ======================= -->
+
+            <!-- === CONTEÚDO DAS ABAS === -->
+            <div class="tab-content" id="relatoriosTabContent">
+
+                <!-- CONTEÚDO ABA 1: Diários (Simplificado) -->
+                <div class="tab-pane fade show active" id="relatorios-diarios" role="tabpanel" aria-labelledby="diarios-tab">
+                    <div class="card shadow-sm border-0 border-top-0 rounded-top-0">
+                        <div class="card-body">
+                            <h4 class="mb-3">Cultos Diários (Sem Classes)</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Igreja</th>
+                                            <th>Tipo de Culto</th>
+                                            <th>Data</th>
+                                            <th>M. Adultos</th>
+                                            <th>V. Adultos</th>
+                                            <th>Total Geral</th>
+                                            <th id="th-acoes-diarios" class="d-none">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabela-resultados-diarios">
+                                        <!-- Preenchido pelo JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="sem-resultados-diarios" class="text-center p-4 d-none">
+                                <p class="text-muted">Nenhum resultado de Culto Diário encontrado.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- CONTEÚDO ABA 2: EBD e Especiais (Com CIAs) -->
+                <div class="tab-pane fade" id="relatorios-ebd" role="tabpanel" aria-labelledby="ebd-tab">
+                    <div class="card shadow-sm border-0 border-top-0 rounded-top-0">
+                        <div class="card-body">
+                            <h4 class="mb-3">EBD, Ceia, Vigílias (Detalhado)</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Igreja</th>
+                                            <th>Tipo de Culto</th>
+                                            <th>Data</th>
+                                            <th class="table-info">M. Adultos</th>
+                                            <th class="table-info">M. CIAs</th>
+                                            <th class="table-warning">V. Adultos</th>
+                                            <th class="table-warning">V. CIAs</th>
+                                            <th>Total Geral</th>
+                                            <th id="th-acoes-ebd" class="d-none">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabela-resultados-ebd">
+                                        <!-- Preenchido pelo JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="sem-resultados-ebd" class="text-center p-4 d-none">
+                                <p class="text-muted">Nenhum resultado de EBD ou Especial encontrado.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTEÚDO ABA 3: Trombetas -->
+                <div class="tab-pane fade" id="relatorios-trombetas" role="tabpanel" aria-labelledby="trombetas-tab">
+                    <div class="card shadow-sm border-0 border-top-0 rounded-top-0">
+                        <div class="card-body">
+                            <h4 class="mb-3">Relatórios de Trombetas e Festas</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Igreja</th>
+                                            <th>Data</th>
+                                            <th>M. Crianças</th>
+                                            <th>M. Interm.</th>
+                                            <th>M. Adol.</th>
+                                            <th>M. Adultos</th>
+                                            <th>V. Crianças</th>
+                                            <th>V. Interm.</th>
+                                            <th>V. Adol.</th>
+                                            <th>V. Adultos</th>
+                                            <th>Total Geral</th>
+                                            <th id="th-acoes-trombetas" class="d-none">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabela-resultados-trombetas">
+                                        <!-- Preenchido pelo JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="sem-resultados-trombetas" class="text-center p-4 d-none">
+                                <p class="text-muted">Nenhum resultado de Trombetas encontrado.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
+            <!-- ======================= -->
+
         </main>
     </div>
 
@@ -135,7 +245,7 @@
     
     <!-- Modal de Edição -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg"> 
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editModalLabel">Editar Relatório</h5>
@@ -144,12 +254,15 @@
                 <div class="modal-body">
                     <form id="edit-form">
                         <input type="hidden" id="edit-doc-id">
-                        <div class="mb-3">
-                            <label class="form-label">Igreja: <strong id="edit-nome-igreja"></strong></label><br>
-                            <label class="form-label">Data: <small id="edit-data-completa"></small></label>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Igreja: <strong id="edit-nome-igreja"></strong></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data: <small id="edit-data-completa"></small></label>
+                            </div>
                         </div>
                         
-                        <!-- NOVO CAMPO DE EDIÇÃO: TIPO DE CULTO -->
                         <div class="form-floating mb-3">
                             <select class="form-select" id="edit-tipo-culto" aria-label="Tipo de Culto" required>
                                 <option value="CULTO DIÁRIO">CULTO DIÁRIO</option>
@@ -161,42 +274,104 @@
                                 <option value="PROMOÇÃO DE CLASSES">PROMOÇÃO DE CLASSES</option>
                                 <option value="CULTO ESPECIAL">CULTO ESPECIAL</option>
                                 <option value="CASAMENTO">CASAMENTO</option>
+                                <option value="TROMBETAS E FESTAS">TROMBETAS E FESTAS</option>
                             </select>
                             <label for="edit-tipo-culto">Tipo de Culto</label>
                         </div>
-                        <!-- FIM DO NOVO CAMPO -->
-
                         <hr>
-                        <h6 class="mb-2">Membros</h6>
-                        <div class="row g-2 mb-3">
-                            <div class="col">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" id="edit-membros-adultos" placeholder="Adultos" min="0" required>
-                                    <label for="edit-membros-adultos">Adultos</label>
+
+                        <!-- Campos de Edição Padrão -->
+                        <div id="edit-campos-padrao">
+                            <h6 class="mb-2">Membros</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-membros-adultos" placeholder="Adultos" min="0">
+                                        <label for="edit-membros-adultos">Adultos</label>
+                                    </div>
+                                </div>
+                                <div class="col" id="edit-container-membros-cias">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-membros-cias" placeholder="Crianças" min="0">
+                                        <label for="edit-membros-cias">Classes (CIAs)</label>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" id="edit-membros-cias" placeholder="Crianças" min="0" required>
-                                    <label for="edit-membros-cias">Classes (CIAs)</label>
+                            <h6 class="mb-2 mt-4">Visitantes</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-visitantes-adultos" placeholder="Adultos" min="0">
+                                        <label for="edit-visitantes-adultos">Adultos</label>
+                                    </div>
+                                </div>
+                                <div class="col" id="edit-container-visitantes-cias">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-visitantes-cias" placeholder="Crianças" min="0">
+                                        <label for="edit-visitantes-cias">Classes (CIAs)</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <h6 class="mb-2 mt-4">Visitantes</h6>
-                        <div class="row g-2 mb-3">
-                            <div class="col">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" id="edit-visitantes-adultos" placeholder="Adultos" min="0" required>
-                                    <label for="edit-visitantes-adultos">Adultos</label>
+
+                        <!-- Campos de Edição Trombetas -->
+                        <div id="edit-campos-trombetas" class="d-none">
+                            <h6 class="mb-2">Membros (Trombetas)</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-membros-criancas" placeholder="Crianças" min="0">
+                                        <label for="edit-trombetas-membros-criancas">Crianças</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-membros-intermediarios" placeholder="Intermediários" min="0">
+                                        <label for="edit-trombetas-membros-intermediarios">Intermediários</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-membros-adolescentes" placeholder="Adolescentes" min="0">
+                                        <label for="edit-trombetas-membros-adolescentes">Adolescentes</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-membros-adultos" placeholder="Adultos" min="0">
+                                        <label for="edit-trombetas-membros-adultos">Adultos</label>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" id="edit-visitantes-cias" placeholder="Crianças" min="0" required>
-                                    <label for="edit-visitantes-cias">Classes (CIAs)</label>
+                            <h6 class="mb-2 mt-4">Visitantes (Trombetas)</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-visitantes-criancas" placeholder="Crianças" min="0">
+                                        <label for="edit-trombetas-visitantes-criancas">Crianças</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-visitantes-intermediarios" placeholder="Intermediários" min="0">
+                                        <label for="edit-trombetas-visitantes-intermediarios">Intermediários</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-visitantes-adolescentes" placeholder="Adolescentes" min="0">
+                                        <label for="edit-trombetas-visitantes-adolescentes">Adolescentes</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" id="edit-trombetas-visitantes-adultos" placeholder="Adultos" min="0">
+                                        <label for="edit-trombetas-visitantes-adultos">Adultos</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -231,7 +406,7 @@
         </div>
     </div>
 
-    <!-- Carrega o JavaScript do Bootstrap (OBRIGATÓRIO PARA MODAIS) -->
+    <!-- Carrega o JavaScript do Bootstrap (OBRIGATÓRIO PARA MODAIS E ABAS) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Nosso script (sempre por último) -->

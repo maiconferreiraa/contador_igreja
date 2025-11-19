@@ -27,21 +27,29 @@ const btnLogout = document.getElementById('btn-logout');
 const btnFiltrar = document.getElementById('btn-filtrar');
 const filtroIgreja = document.getElementById('filtro-igreja');
 const filtroData = document.getElementById('filtro-data');
-const tabelaResultados = document.getElementById('tabela-resultados');
-const semResultados = document.getElementById('sem-resultados');
-
-// Cards (Simplificado)
 const cardTotalRelatorios = document.getElementById('total-relatorios');
 
 // Containers
 const filtroIgrejaContainer = document.getElementById('filtro-igreja-container');
 const filtroDataContainer = document.getElementById('filtro-data-container');
 const btnFiltrarContainer = document.getElementById('btn-filtrar-container');
-const thAcoes = document.getElementById('th-acoes'); 
 
-// === CAMPO DE MÊS ===
+// Filtro de Mês
 const filtroMesEspecificoContainer = document.getElementById('filtro-mes-especifico-container');
 const filtroMesEspecifico = document.getElementById('filtro-mes-especifico');
+
+// --- NOVAS REFERÊNCIAS (3 TABELAS) ---
+const tabelaResultadosDiarios = document.getElementById('tabela-resultados-diarios');
+const semResultadosDiarios = document.getElementById('sem-resultados-diarios');
+const thAcoesDiarios = document.getElementById('th-acoes-diarios'); 
+
+const tabelaResultadosEBD = document.getElementById('tabela-resultados-ebd');
+const semResultadosEBD = document.getElementById('sem-resultados-ebd');
+const thAcoesEBD = document.getElementById('th-acoes-ebd'); 
+
+const tabelaResultadosTrombetas = document.getElementById('tabela-resultados-trombetas');
+const semResultadosTrombetas = document.getElementById('sem-resultados-trombetas');
+const thAcoesTrombetas = document.getElementById('th-acoes-trombetas'); 
 
 // --- Referências aos Modais ---
 const editModalEl = document.getElementById('editModal');
@@ -53,6 +61,14 @@ const deleteModalEl = document.getElementById('deleteModal');
 const deleteModal = new bootstrap.Modal(deleteModalEl); 
 const btnConfirmDelete = document.getElementById('btn-confirm-delete');
 
+// Referências (Modal de Edição Condicional)
+const editTipoCultoSelect = document.getElementById('edit-tipo-culto');
+const editCamposPadrao = document.getElementById('edit-campos-padrao');
+const editCamposTrombetas = document.getElementById('edit-campos-trombetas');
+// Containers específicos para CIAs no modal
+const editContainerMembrosCias = document.getElementById('edit-container-membros-cias');
+const editContainerVisitantesCias = document.getElementById('edit-container-visitantes-cias');
+
 // --- Variáveis Globais ---
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
@@ -63,25 +79,18 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         verificarPermissoes(user);
     } else {
-        console.log('DEBUG: Usuário não está logado. Redirecionando para login.html');
         window.location.href = 'login.html';
     }
 });
 
 // --- 2. VERIFICAR PERMISSÕES ---
 async function verificarPermissoes(user) {
-    
-    console.log("DEBUG: Verificando permissões para o UID:", user.uid);
-
     try {
         const userDocRef = doc(db, "usuarios", user.uid);
         const userDoc = await getDoc(userDocRef);
 
-        console.log("DEBUG: Documento encontrado no Firestore?", userDoc.exists());
-
         if (!userDoc.exists()) {
-            console.error("DEBUG: FALHA! Documento de permissão não encontrado!");
-            alert("Sua conta não tem permissões definidas. Verifique o Firestore.");
+            alert("Sua conta não tem permissões definidas.");
             signOut(auth); 
             return;
         }
@@ -89,27 +98,21 @@ async function verificarPermissoes(user) {
         const userData = userDoc.data();
         currentUserRole = userData.role; 
 
-        console.log("DEBUG: Cargo (role) encontrado:", currentUserRole);
-
         loadingDiv.classList.add('d-none');
         adminContent.classList.remove('d-none');
         
-        // Esconde cards extras (se existirem no HTML antigo)
-        const adminCards = document.getElementById('admin-cards-container');
-        if (adminCards) {
-            adminCards.classList.add('d-none');
-        }
         // Ajusta layout do card restante
         const relatoriosContainer = document.getElementById('card-relatorios-container');
         if (relatoriosContainer) {
             relatoriosContainer.classList.remove('col-lg-4', 'col-lg-5');
-            // Ajusta o layout do card restante para ocupar o espaço
             relatoriosContainer.classList.add('col-md-6', 'col-lg-6');
         }
 
         if (currentUserRole === "admin") {
             filtroIgrejaContainer.classList.remove('d-none');
-            thAcoes.classList.remove('d-none'); // Mostra coluna "Ações"
+            thAcoesDiarios.classList.remove('d-none');
+            thAcoesEBD.classList.remove('d-none');
+            thAcoesTrombetas.classList.remove('d-none');
             carregarDadosIniciais(null); 
         } else if (currentUserRole === "secretaria") {
             const userIgreja = userData.igreja;
@@ -118,14 +121,13 @@ async function verificarPermissoes(user) {
                  signOut(auth); 
                  return;
             }
-            // Ajusta layout dos filtros para Secretaria
             filtroDataContainer.classList.replace('col-md-3', 'col-md-4');
             btnFiltrarContainer.classList.replace('col-md-3', 'col-md-4');
             filtroMesEspecificoContainer.classList.replace('col-md-3', 'col-md-4');
             
-            // === MUDANÇA: Mostra coluna "Ações" para Secretaria ===
-            thAcoes.classList.remove('d-none');
-            // ==================
+            thAcoesDiarios.classList.remove('d-none');
+            thAcoesEBD.classList.remove('d-none');
+            thAcoesTrombetas.classList.remove('d-none'); 
 
             carregarDadosIniciais(userIgreja); 
         } else {
@@ -173,7 +175,7 @@ async function carregarDadosIniciais(filtroIgrejaSecretaria) {
         aplicarFiltros();
     } catch (error) {
         console.error("Erro ao buscar documentos: ", error);
-        alert("Não foi possível carregar os dados do banco. (Verifique os Índices do Firestore)");
+        alert("Não foi possível carregar os dados do banco.");
     }
 }
 
@@ -188,9 +190,8 @@ function preencherFiltroIgrejas() {
     });
 }
 
-// --- 6. LÓGICA DE FILTRAGEM (ATUALIZADA) ---
+// --- 6. LÓGICA DE FILTRAGEM ---
 
-// Evento para mostrar/esconder o input de mês
 filtroData.addEventListener('change', () => {
     if (filtroData.value === 'specific-month') {
         filtroMesEspecificoContainer.classList.remove('d-none');
@@ -204,9 +205,9 @@ btnFiltrar.addEventListener('click', aplicarFiltros);
 function aplicarFiltros() {
     const valorIgreja = filtroIgreja.value;
     const valorData = filtroData.value;
-    const valorMesEspecifico = filtroMesEspecifico.value; // Pega o valor do YYYY-MM
+    const valorMesEspecifico = filtroMesEspecifico.value; 
 
-    let dataInicio, dataFim; // indefinidos por padrão (para "todo o período")
+    let dataInicio, dataFim; 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0); 
 
@@ -243,24 +244,72 @@ function aplicarFiltros() {
         return filtroIgrejaOk && filtroDataOk;
     });
 
-    renderizarResultados(dadosFiltrados);
+    renderizarTabelas(dadosFiltrados);
 }
 
 
-// --- 7. RENDERIZA OS DADOS NA TELA (com 'tipoCulto') ---
-function renderizarResultados(dados) {
-    tabelaResultados.innerHTML = "";
-    let totRelatorios = dados.length;
-    if (totRelatorios === 0) {
-        semResultados.classList.remove('d-none');
+// --- 7. RENDERIZA OS DADOS NAS TABELAS (3 TABELAS) ---
+
+function renderizarTabelas(dados) {
+    // Divide os dados em 3 grupos
+    const dadosDiarios = [];
+    const dadosEBD = [];
+    const dadosTrombetas = [];
+    
+    dados.forEach(doc => {
+        if (doc.tipoCulto === "TROMBETAS E FESTAS") {
+            dadosTrombetas.push(doc);
+        } else if (doc.tipoCulto === "CULTO DIÁRIO") {
+            dadosDiarios.push(doc);
+        } else {
+            // Todos os outros (EBD, CEIA, VIGÍLIA, ETC) que usam CIAs
+            dadosEBD.push(doc);
+        }
+    });
+
+    cardTotalRelatorios.innerText = dados.length;
+    
+    renderizarTabelaDiarios(dadosDiarios);
+    renderizarTabelaEBD(dadosEBD);
+    renderizarTabelaTrombetas(dadosTrombetas);
+}
+
+// 1. Tabela Diários (Simplificada)
+function renderizarTabelaDiarios(dados) {
+    tabelaResultadosDiarios.innerHTML = "";
+    if (dados.length === 0) {
+        semResultadosDiarios.classList.remove('d-none');
     } else {
-        semResultados.classList.add('d-none');
+        semResultadosDiarios.classList.add('d-none');
     }
     dados.forEach(doc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${doc.nomeIgreja}</td>
-            <td>${doc.tipoCulto || 'N/D'}</td> <!-- MOSTRA O TIPO DE CULTO -->
+            <td>${doc.tipoCulto || 'N/D'}</td> 
+            <td>${doc.dataCompleta}</td>
+            <td>${doc.membrosAdultos || 0}</td>
+            <td>${doc.visitantesAdultos || 0}</td>
+            <td><strong>${doc.totalGeral}</strong></td>
+        `;
+        addAcoes(tr, doc.id);
+        tabelaResultadosDiarios.appendChild(tr);
+    });
+}
+
+// 2. Tabela EBD/Especiais (Detalhada)
+function renderizarTabelaEBD(dados) {
+    tabelaResultadosEBD.innerHTML = "";
+    if (dados.length === 0) {
+        semResultadosEBD.classList.remove('d-none');
+    } else {
+        semResultadosEBD.classList.add('d-none');
+    }
+    dados.forEach(doc => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${doc.nomeIgreja}</td>
+            <td>${doc.tipoCulto || 'N/D'}</td> 
             <td>${doc.dataCompleta}</td>
             <td>${doc.membrosAdultos || 0}</td>
             <td>${doc.membrosCias || 0}</td>
@@ -268,27 +317,58 @@ function renderizarResultados(dados) {
             <td>${doc.visitantesCias || 0}</td>
             <td><strong>${doc.totalGeral}</strong></td>
         `;
-
-        // Adiciona botões de Ação se for admin OU secretaria
-        if (currentUserRole === 'admin' || currentUserRole === 'secretaria') {
-            const tdAcoes = document.createElement('td');
-            tdAcoes.innerHTML = `
-                <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${doc.id}" title="Editar">
-                    <i class="bi bi-pencil-fill"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${doc.id}" title="Excluir">
-                    <i class="bi bi-trash-fill"></i>
-                </button>
-            `;
-            tr.appendChild(tdAcoes);
-        }
-        tabelaResultados.appendChild(tr);
+        addAcoes(tr, doc.id);
+        tabelaResultadosEBD.appendChild(tr);
     });
-    cardTotalRelatorios.innerText = totRelatorios;
 }
 
-// --- 8. LÓGICA DE EVENTOS DA TABELA (EDITAR/EXCLUIR) ---
-tabelaResultados.addEventListener('click', (e) => {
+// 3. Tabela Trombetas (Complexa)
+function renderizarTabelaTrombetas(dados) {
+    tabelaResultadosTrombetas.innerHTML = "";
+    if (dados.length === 0) {
+        semResultadosTrombetas.classList.remove('d-none');
+    } else {
+        semResultadosTrombetas.classList.add('d-none');
+    }
+    dados.forEach(doc => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${doc.nomeIgreja}</td>
+            <td>${doc.dataCompleta}</td>
+            <td>${doc.trombetasMembrosCriancas || 0}</td>
+            <td>${doc.trombetasMembrosIntermediarios || 0}</td>
+            <td>${doc.trombetasMembrosAdolescentes || 0}</td>
+            <td>${doc.trombetasMembrosAdultos || 0}</td>
+            <td>${doc.trombetasVisitantesCriancas || 0}</td>
+            <td>${doc.trombetasVisitantesIntermediarios || 0}</td>
+            <td>${doc.trombetasVisitantesAdolescentes || 0}</td>
+            <td>${doc.trombetasVisitantesAdultos || 0}</td>
+            <td><strong>${doc.totalGeral}</strong></td>
+        `;
+        addAcoes(tr, doc.id);
+        tabelaResultadosTrombetas.appendChild(tr);
+    });
+}
+
+// Helper para adicionar botões
+function addAcoes(tr, id) {
+    if (currentUserRole === 'admin' || currentUserRole === 'secretaria') {
+        const tdAcoes = document.createElement('td');
+        tdAcoes.innerHTML = `
+            <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${id}" title="Editar">
+                <i class="bi bi-pencil-fill"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Excluir">
+                <i class="bi bi-trash-fill"></i>
+            </button>
+        `;
+        tr.appendChild(tdAcoes);
+    }
+}
+
+
+// --- 8. EVENTOS (EDITAR/EXCLUIR) ---
+document.getElementById('relatoriosTabContent').addEventListener('click', (e) => {
     const target = e.target.closest('button'); 
     if (!target) return; 
     const docId = target.dataset.id; 
@@ -300,21 +380,55 @@ tabelaResultados.addEventListener('click', (e) => {
     }
 });
 
-// --- 9. LÓGICA DE EDIÇÃO (com 'tipoCulto') ---
+// --- 9. EDIÇÃO (ATUALIZADA) ---
+editTipoCultoSelect.addEventListener('change', toggleEditCampos);
+
+function toggleEditCampos() {
+    const tipo = editTipoCultoSelect.value;
+    // Reset
+    editCamposPadrao.classList.add('d-none');
+    editCamposTrombetas.classList.add('d-none');
+    if (editContainerMembrosCias) editContainerMembrosCias.classList.remove('d-none');
+    if (editContainerVisitantesCias) editContainerVisitantesCias.classList.remove('d-none');
+
+    if (tipo === "TROMBETAS E FESTAS") {
+        editCamposTrombetas.classList.remove('d-none');
+    } else if (tipo === "CULTO DIÁRIO") {
+        editCamposPadrao.classList.remove('d-none');
+        // Esconde CIAs no modal também
+        if (editContainerMembrosCias) editContainerMembrosCias.classList.add('d-none');
+        if (editContainerVisitantesCias) editContainerVisitantesCias.classList.add('d-none');
+    } else {
+        // EBD e outros
+        editCamposPadrao.classList.remove('d-none');
+    }
+}
+
 function abrirModalEdicao(id) {
     const docParaEditar = todosOsDocumentos.find(doc => doc.id === id);
     if (!docParaEditar) return;
+    
     document.getElementById('edit-doc-id').value = id;
     document.getElementById('edit-nome-igreja').innerText = docParaEditar.nomeIgreja;
     document.getElementById('edit-data-completa').innerText = docParaEditar.dataCompleta;
-    
-    // Define o valor do 'tipoCulto' no modal
-    document.getElementById('edit-tipo-culto').value = docParaEditar.tipoCulto || 'CULTO DIÁRIO';
+    editTipoCultoSelect.value = docParaEditar.tipoCulto || "CULTO DIÁRIO";
 
-    document.getElementById('edit-membros-adultos').value = docParaEditar.membrosAdultos;
-    document.getElementById('edit-membros-cias').value = docParaEditar.membrosCias;
-    document.getElementById('edit-visitantes-adultos').value = docParaEditar.visitantesAdultos;
-    document.getElementById('edit-visitantes-cias').value = docParaEditar.visitantesCias;
+    // Preenche todos os campos
+    document.getElementById('edit-membros-adultos').value = docParaEditar.membrosAdultos || 0;
+    document.getElementById('edit-membros-cias').value = docParaEditar.membrosCias || 0;
+    document.getElementById('edit-visitantes-adultos').value = docParaEditar.visitantesAdultos || 0;
+    document.getElementById('edit-visitantes-cias').value = docParaEditar.visitantesCias || 0;
+    
+    document.getElementById('edit-trombetas-membros-criancas').value = docParaEditar.trombetasMembrosCriancas || 0;
+    document.getElementById('edit-trombetas-membros-intermediarios').value = docParaEditar.trombetasMembrosIntermediarios || 0;
+    document.getElementById('edit-trombetas-membros-adolescentes').value = docParaEditar.trombetasMembrosAdolescentes || 0;
+    document.getElementById('edit-trombetas-membros-adultos').value = docParaEditar.trombetasMembrosAdultos || 0;
+    document.getElementById('edit-trombetas-visitantes-criancas').value = docParaEditar.trombetasVisitantesCriancas || 0;
+    document.getElementById('edit-trombetas-visitantes-intermediarios').value = docParaEditar.trombetasVisitantesIntermediarios || 0;
+    document.getElementById('edit-trombetas-visitantes-adolescentes').value = docParaEditar.trombetasVisitantesAdolescentes || 0;
+    document.getElementById('edit-trombetas-visitantes-adultos').value = docParaEditar.trombetasVisitantesAdultos || 0;
+
+    toggleEditCampos(); 
     editModal.show();
 }
 
@@ -323,47 +437,80 @@ btnSaveEdit.addEventListener('click', async () => {
     if (!id) return;
     btnSaveEdit.disabled = true;
     btnSaveEdit.innerText = "Salvando...";
-    try {
-        // Pega os novos valores do formulário
-        const tipoCulto = document.getElementById('edit-tipo-culto').value; // PEGA O NOVO CAMPO
-        const mA = parseInt(document.getElementById('edit-membros-adultos').value) || 0;
-        const mC = parseInt(document.getElementById('edit-membros-cias').value) || 0;
-        const vA = parseInt(document.getElementById('edit-visitantes-adultos').value) || 0;
-        const vC = parseInt(document.getElementById('edit-visitantes-cias').value) || 0;
-        
-        // Recalcula os totais
-        const totalMembros = mA + mC;
-        const totalVisitantes = vA + vC;
-        const totalGeral = totalMembros + totalVisitantes;
 
-        const dadosAtualizados = {
-            tipoCulto: tipoCulto, // SALVA O NOVO CAMPO
-            membrosAdultos: mA,
-            membrosCias: mC,
-            visitantesAdultos: vA,
-            visitantesCias: vC,
-            totalMembros: totalMembros,
-            totalVisitantes: totalVisitantes,
-            totalGeral: totalGeral,
-        };
+    try {
+        const tipoCulto = editTipoCultoSelect.value;
+        const dadosAtualizados = { tipoCulto: tipoCulto };
+
+        let totalMembros = 0;
+        let totalVisitantes = 0;
+
+        if (tipoCulto === "TROMBETAS E FESTAS") {
+            const mC = parseInt(document.getElementById('edit-trombetas-membros-criancas').value) || 0;
+            const mI = parseInt(document.getElementById('edit-trombetas-membros-intermediarios').value) || 0;
+            const mAd = parseInt(document.getElementById('edit-trombetas-membros-adolescentes').value) || 0;
+            const mA = parseInt(document.getElementById('edit-trombetas-membros-adultos').value) || 0;
+            const vC = parseInt(document.getElementById('edit-trombetas-visitantes-criancas').value) || 0;
+            const vI = parseInt(document.getElementById('edit-trombetas-visitantes-intermediarios').value) || 0;
+            const vAd = parseInt(document.getElementById('edit-trombetas-visitantes-adolescentes').value) || 0;
+            const vA = parseInt(document.getElementById('edit-trombetas-visitantes-adultos').value) || 0;
+
+            dadosAtualizados.trombetasMembrosCriancas = mC;
+            dadosAtualizados.trombetasMembrosIntermediarios = mI;
+            dadosAtualizados.trombetasMembrosAdolescentes = mAd;
+            dadosAtualizados.trombetasMembrosAdultos = mA;
+            dadosAtualizados.trombetasVisitantesCriancas = vC;
+            dadosAtualizados.trombetasVisitantesIntermediarios = vI;
+            dadosAtualizados.trombetasVisitantesAdolescentes = vAd;
+            dadosAtualizados.trombetasVisitantesAdultos = vA;
+            
+            totalMembros = mC + mI + mAd + mA;
+            totalVisitantes = vC + vI + vAd + vA;
+
+        } else {
+            const mA = parseInt(document.getElementById('edit-membros-adultos').value) || 0;
+            const vA = parseInt(document.getElementById('edit-visitantes-adultos').value) || 0;
+            let mC = 0, vC = 0;
+
+            if (tipoCulto !== "CULTO DIÁRIO") {
+                mC = parseInt(document.getElementById('edit-membros-cias').value) || 0;
+                vC = parseInt(document.getElementById('edit-visitantes-cias').value) || 0;
+            }
+
+            dadosAtualizados.membrosAdultos = mA;
+            dadosAtualizados.membrosCias = mC;
+            dadosAtualizados.visitantesAdultos = vA;
+            dadosAtualizados.visitantesCias = vC;
+            
+            totalMembros = mA + mC;
+            totalVisitantes = vA + vC;
+        }
+
+        dadosAtualizados.totalMembros = totalMembros;
+        dadosAtualizados.totalVisitantes = totalVisitantes;
+        dadosAtualizados.totalGeral = totalMembros + totalVisitantes;
         
         const docRef = doc(db, "contagens", id);
-        await updateDoc(docRef, dadosAtualizados);
+        const docOriginal = todosOsDocumentos.find(d => d.id === id);
+        const dadosFinais = { ...docOriginal, ...dadosAtualizados };
+
+        await updateDoc(docRef, dadosFinais);
         editModal.hide();
-        
         const docAtualizado = todosOsDocumentos.find(doc => doc.id === id);
         const filtroIgrejaAdmin = currentUserRole === 'admin' ? null : docAtualizado?.nomeIgreja;
         carregarDadosIniciais(filtroIgrejaAdmin);
+
     } catch (error) {
-        console.error("Erro ao atualizar documento: ", error);
-        alert("Falha ao salvar. Verifique as regras do Firestore.");
+        console.error("Erro ao atualizar: ", error);
+        alert("Falha ao salvar.");
     } finally {
         btnSaveEdit.disabled = false;
         btnSaveEdit.innerText = "Salvar Alterações";
     }
 });
 
-// --- 10. LÓGICA DE EXCLUSÃO (CORRIGIDA) ---
+
+// --- 10. EXCLUSÃO ---
 let idParaExcluir = null; 
 function abrirModalExclusao(id) {
     const docParaExcluir = todosOsDocumentos.find(doc => doc.id === id);
@@ -371,9 +518,8 @@ function abrirModalExclusao(id) {
     document.getElementById('delete-nome-igreja').innerText = docParaExcluir.nomeIgreja;
     document.getElementById('delete-data-completa').innerText = docParaExcluir.dataCompleta;
     idParaExcluir = id; 
-    deleteModal.show(); 
+    deleteModal.show();
 }
-
 btnConfirmDelete.addEventListener('click', async () => { 
     if (!idParaExcluir) return;
     btnConfirmDelete.disabled = true;
@@ -381,18 +527,16 @@ btnConfirmDelete.addEventListener('click', async () => {
     const docExcluido = todosOsDocumentos.find(doc => doc.id === idParaExcluir);
     const nomeIgreja = docExcluido?.nomeIgreja;
     try {
-        const docRef = doc(db, "contagens", idParaExcluir);
-        await deleteDoc(docRef);
+        await deleteDoc(doc(db, "contagens", idParaExcluir));
         deleteModal.hide();
         const filtroIgrejaAdmin = currentUserRole === 'admin' ? null : nomeIgreja;
         carregarDadosIniciais(filtroIgrejaAdmin);
     } catch (error) {
-        console.error("Erro ao excluir documento: ", error);
-        alert("Falha ao excluir. Verifique as regras do Firestore.");
+        console.error("Erro ao excluir: ", error);
+        alert("Falha ao excluir.");
     } finally {
         idParaExcluir = null; 
         btnConfirmDelete.disabled = false;
         btnConfirmDelete.innerText = "Sim, Excluir";
     }
 });
-

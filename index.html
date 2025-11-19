@@ -38,7 +38,7 @@
     <div class="container">
         <div class="card shadow-sm border-0">
             <div class="card-body p-4 p-md-5">
-                <h2 class="text-center mb-3">Relatório Frequência do Culto</h2>
+                <h2 class="text-center mb-3">Relatório Numérico do Culto</h2>
                 
                 <!-- AVISO IMPORTANTE -->
                 <div class="alert alert-warning text-center small" role="alert">
@@ -78,7 +78,6 @@
                         <select class="form-select" id="tipo-culto" aria-label="Tipo de Culto" required>
                             <option value="" selected disabled>Selecione o Tipo de Culto</option>
                             <option value="CULTO DIÁRIO">CULTO DIÁRIO</option>
-                            <option value="CASAMENTO">TROMBETAS E FESTAS</option>
                             <option value="EBD">EBD</option>
                             <option value="CEIA">CEIA</option>
                             <option value="VIGÍLIA">VIGÍLIA</option>
@@ -87,41 +86,108 @@
                             <option value="PROMOÇÃO DE CLASSES">PROMOÇÃO DE CLASSES</option>
                             <option value="CULTO ESPECIAL">CULTO ESPECIAL</option>
                             <option value="CASAMENTO">CASAMENTO</option>
+                            <option value="TROMBETAS E FESTAS">TROMBETAS E FESTAS</option>
                         </select>
                         <label for="tipo-culto">Tipo de Culto</label>
                     </div>
 
-                    <h5 class="mb-2 mt-4">Membros</h5>
-                    <div class="row g-2 mb-3">
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="membros-adultos" placeholder="Adultos" min="0" value="0" required>
-                                <label for="membros-adultos">Adultos</label>
+                    <!-- === CAMPOS PADRÃO (Adultos E CIAs) === -->
+                    <div id="campos-culto-padrao">
+                        <h5 class="mb-2 mt-4">Membros</h5>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="membros-adultos" placeholder="Adultos" min="0" value="0">
+                                    <label for="membros-adultos">Adultos</label>
+                                </div>
+                            </div>
+                            <!-- ID adicionado para esconder este campo específico no Culto Diário -->
+                            <div class="col" id="container-membros-cias">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="membros-cias" placeholder="Crianças" min="0" value="0">
+                                    <label for="membros-cias">Classes (CIAs)</label>
+                                </div>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="membros-cias" placeholder="Crianças" min="0" value="0" required>
-                                <label for="membros-cias">Classes (CIAs)</label>
-                            </div>
-                        </div>
-                    </div>
 
-                    <h5 class="mb-2 mt-4">Visitantes</h5>
-                    <div class="row g-2 mb-3">
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="visitantes-adultos" placeholder="Adultos" min="0" value="0" required>
-                                <label for="visitantes-adultos">Adultos</label>
+                        <h5 class="mb-2 mt-4">Visitantes</h5>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="visitantes-adultos" placeholder="Adultos" min="0" value="0">
+                                    <label for="visitantes-adultos">Adultos</label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col">
-                            <div class="form-floating">
-                                <input type="number" class="form-control" id="visitantes-cias" placeholder="Crianças" min="0" value="0" required>
-                                <label for="visitantes-cias">Classes (CIAs)</label>
+                            <!-- ID adicionado para esconder este campo específico no Culto Diário -->
+                            <div class="col" id="container-visitantes-cias">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="visitantes-cias" placeholder="Crianças" min="0" value="0">
+                                    <label for="visitantes-cias">Classes (CIAs)</label>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    <!-- ================================= -->
+
+                    <!-- === CAMPOS TROMBETAS (Escondidos) === -->
+                    <div id="campos-trombetas" class="d-none">
+                        <h5 class="mb-2 mt-4">Membros (Trombetas)</h5>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-membros-criancas" placeholder="Crianças" min="0" value="0">
+                                    <label for="trombetas-membros-criancas">Crianças</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-membros-intermediarios" placeholder="Intermediários" min="0" value="0">
+                                    <label for="trombetas-membros-intermediarios">Intermediários</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-membros-adolescentes" placeholder="Adolescentes" min="0" value="0">
+                                    <label for="trombetas-membros-adolescentes">Adolescentes</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-membros-adultos" placeholder="Adultos" min="0" value="0">
+                                    <label for="trombetas-membros-adultos">Adultos</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-2 mt-4">Visitantes (Trombetas)</h5>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-visitantes-criancas" placeholder="Crianças" min="0" value="0">
+                                    <label for="trombetas-visitantes-criancas">Crianças</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-visitantes-intermediarios" placeholder="Intermediários" min="0" value="0">
+                                    <label for="trombetas-visitantes-intermediarios">Intermediários</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-visitantes-adolescentes" placeholder="Adolescentes" min="0" value="0">
+                                    <label for="trombetas-visitantes-adolescentes">Adolescentes</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="trombetas-visitantes-adultos" placeholder="Adultos" min="0" value="0">
+                                    <label for="trombetas-visitantes-adultos">Adultos</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ================================= -->
                     
                     <!-- === TOTAL GERAL (EM TEMPO REAL) === -->
                     <div class="form-floating mb-3 mt-4">
