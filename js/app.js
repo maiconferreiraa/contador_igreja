@@ -12,6 +12,11 @@ const msgErro = document.getElementById('mensagem-erro');
 const dataAtualEl = document.getElementById('data-atual');
 const tipoCultoSelect = document.getElementById('tipo-culto');
 
+// --- NOVOS ELEMENTOS PARA DATA MANUAL (ESQUECI DE LANÇAR) ---
+const btnEsqueci = document.getElementById('btn-esqueci');
+const containerDataManual = document.getElementById('container-data-manual');
+const dataManualInput = document.getElementById('data-manual-input');
+
 // Containers dos campos
 const camposCultoPadrao = document.getElementById('campos-culto-padrao');
 const camposTrombetas = document.getElementById('campos-trombetas');
@@ -19,6 +24,9 @@ const camposTrombetas = document.getElementById('campos-trombetas');
 // Containers específicos de CIAs para esconder (exceto na EBD)
 const containerMembrosCias = document.getElementById('container-membros-cias');
 const containerVisitantesCias = document.getElementById('container-visitantes-cias');
+
+// --- VARIÁVEIS DE ESTADO ---
+let modoDataManual = false;
 
 // --- LÓGICA DO TOTALIZADOR EM TEMPO REAL ---
 
@@ -100,16 +108,55 @@ tipoCultoSelect.addEventListener('change', () => {
     atualizarTotalDisplay(); 
 });
 
-// --- LÓGICA DA DATA ---
-function capitalizar(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
+// --- LÓGICA DO BOTÃO "ESQUECI DE LANÇAR" ---
+if (btnEsqueci) {
+    btnEsqueci.addEventListener('click', () => {
+        modoDataManual = !modoDataManual; // Alterna (Liga/Desliga)
+
+        if (modoDataManual) {
+            // MOSTRA O CALENDÁRIO
+            dataAtualEl.classList.add('d-none');
+            containerDataManual.classList.remove('d-none');
+            
+            // Muda aparência do botão
+            btnEsqueci.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Voltar para Lançamento de Hoje';
+            btnEsqueci.classList.replace('btn-outline-warning', 'btn-outline-secondary');
+            
+            // Define data padrão se vazio
+            if(!dataManualInput.value) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                dataManualInput.value = now.toISOString().slice(0, 16);
+            }
+        } else {
+            // ESCONDE O CALENDÁRIO (Volta ao normal)
+            containerDataManual.classList.add('d-none');
+            dataAtualEl.classList.remove('d-none');
+            
+            // Reseta botão
+            btnEsqueci.innerHTML = '<i class="bi bi-calendar-event"></i> Esqueci de Lançar (Data Passada)';
+            btnEsqueci.classList.replace('btn-outline-secondary', 'btn-outline-warning');
+            dataManualInput.value = "";
+        }
+    });
 }
-const hojeInicial = new Date();
-const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-let dataFormatadaInicial = hojeInicial.toLocaleDateString('pt-BR', options);
-dataFormatadaInicial = dataFormatadaInicial.split(', ').map(capitalizar).join(', ');
-dataFormatadaInicial = dataFormatadaInicial.replace(' De ', ' de ');
-dataAtualEl.innerText = dataFormatadaInicial;
+
+// --- HELPER DE FORMATAÇÃO DE DATA ---
+function formatarDataParaString(dataObj) {
+    function capitalizar(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    let dataTexto = dataObj.toLocaleDateString('pt-BR', options);
+    dataTexto = dataTexto.split(', ').map(capitalizar).join(', ');
+    dataTexto = dataTexto.replace(' De ', ' de ');
+    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+    const horaTexto = dataObj.toLocaleTimeString('pt-BR', timeOptions); 
+    return `${dataTexto} às ${horaTexto}`;
+}
+
+// --- EXIBIÇÃO DA DATA INICIAL (HOJE) ---
+dataAtualEl.innerText = formatarDataParaString(new Date());
 
 // --- LÓGICA DO FORMULÁRIO (SALVAR) ---
 let urlWhatsAppArmazenada = '';
@@ -122,6 +169,23 @@ form.addEventListener('input', () => {
 
 form.addEventListener('submit', async function(event) {
     event.preventDefault(); 
+    
+    // --- DECISÃO DA DATA (Manual ou Automática) ---
+    let dataReferencia;
+    
+    if (modoDataManual) {
+        if (!dataManualInput.value) {
+            alert("Por favor, selecione a data e a hora do culto.");
+            return;
+        }
+        dataReferencia = new Date(dataManualInput.value);
+    } else {
+        dataReferencia = new Date();
+    }
+    
+    // Formata a string bonita para exibir na tabela e no WhatsApp
+    const dataFormatada = formatarDataParaString(dataReferencia);
+
     btnSalvar.disabled = true;
     btnSalvar.innerText = "Salvando...";
     
@@ -130,15 +194,6 @@ form.addEventListener('submit', async function(event) {
     msgErro.classList.add('d-none');
     urlWhatsAppArmazenada = '';
 
-    const hoje = new Date(); 
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    let dataFormatada = hoje.toLocaleDateString('pt-BR', options);
-    dataFormatada = dataFormatada.split(', ').map(capitalizar).join(', ');
-    dataFormatada = dataFormatada.replace(' De ', ' de ');
-    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
-    const horaFormatada = hoje.toLocaleTimeString('pt-BR', timeOptions); 
-    dataFormatada = `${dataFormatada} às ${horaFormatada}`;
-
     const nomeIgreja = document.getElementById('nome-igreja').value;
     const tipoCulto = document.getElementById('tipo-culto').value; 
 
@@ -146,7 +201,8 @@ form.addEventListener('submit', async function(event) {
         nomeIgreja: nomeIgreja,
         tipoCulto: tipoCulto,
         dataCompleta: dataFormatada,
-        timestamp: Timestamp.now(),
+        // IMPORTANTE: Usa a dataReferencia para o Timestamp (ordenação correta no admin)
+        timestamp: Timestamp.fromDate(dataReferencia),
         membrosAdultos: 0,
         membrosCias: 0,
         visitantesAdultos: 0,
@@ -291,6 +347,11 @@ Classes (Cias): ${vC}
         
         // Força o reset visual da lógica de campos
         tipoCultoSelect.dispatchEvent(new Event('change'));
+
+        // Se estava no modo manual, volta para o automático após salvar
+        if(modoDataManual) {
+            btnEsqueci.click(); 
+        }
 
         urlWhatsAppArmazenada = `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
         btnWhatsApp.classList.remove('d-none');
