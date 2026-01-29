@@ -50,11 +50,21 @@ onAuthStateChanged(auth, (user) => {
         // Libera o botão apenas quando temos um usuário válido
         btnSalvar.disabled = false;
         btnSalvar.innerText = "Salvar Relatório";
+        // Limpa mensagens de erro anteriores se conectar com sucesso
+        msgErro.classList.add('d-none');
     } else {
         // Se não tiver usuário, cria um anônimo
         signInAnonymously(auth).catch((error) => {
             console.error("Erro na autenticação anônima:", error);
-            msgErro.innerText = "Erro de conexão: Verifique sua internet.";
+            
+            // Tratamento de erros específicos para facilitar o diagnóstico
+            if (error.code === 'auth/operation-not-allowed') {
+                msgErro.innerText = "Erro: Login Anônimo desativado no Firebase. Ative em Authentication > Sign-in method.";
+            } else if (error.code === 'auth/network-request-failed') {
+                msgErro.innerText = "Erro de conexão: Verifique sua internet.";
+            } else {
+                msgErro.innerText = "Erro de autenticação: " + error.message;
+            }
             msgErro.classList.remove('d-none');
         });
     }
@@ -168,6 +178,42 @@ function formatarDataParaString(dataObj) {
 
 dataAtualEl.innerText = formatarDataParaString(new Date());
 
+// --- FUNÇÕES DE PERSISTÊNCIA LOCAL (LocalStorage) ---
+const STORAGE_KEY_ID = 'igreja_ultimo_id';
+const STORAGE_KEY_DATA = 'igreja_ultimo_dados';
+
+function salvarLocalmente(id, dados) {
+    localStorage.setItem(STORAGE_KEY_ID, id);
+    // Convertemos o Timestamp do Firebase para string ISO para poder salvar no JSON
+    const dadosParaSalvar = {
+        ...dados,
+        timestamp: dados.timestamp.toDate().toISOString() // Salva como string
+    };
+    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dadosParaSalvar));
+}
+
+function carregarUltimoLocalmente() {
+    const id = localStorage.getItem(STORAGE_KEY_ID);
+    const dadosString = localStorage.getItem(STORAGE_KEY_DATA);
+
+    if (id && dadosString) {
+        try {
+            const dados = JSON.parse(dadosString);
+            // Reconstrói o objeto Timestamp do Firestore a partir da string
+            dados.timestamp = Timestamp.fromDate(new Date(dados.timestamp));
+            
+            ultimoIdSalvo = id;
+            ultimoRelatorioSalvo = dados;
+            
+            // Mostra o botão de corrigir automaticamente se houver dados salvos
+            containerCorrigir.classList.remove('d-none');
+            console.log("Último envio recuperado do cache local.");
+        } catch (e) {
+            console.error("Erro ao carregar dados locais:", e);
+        }
+    }
+}
+
 // --- LÓGICA DO BOTÃO "CORRIGIR ÚLTIMO ENVIO" ---
 btnCorrigirUltimo.addEventListener('click', () => {
     if (!ultimoRelatorioSalvo || !ultimoIdSalvo) return;
@@ -177,11 +223,14 @@ btnCorrigirUltimo.addEventListener('click', () => {
     msgSucesso.classList.add('d-none'); 
     btnWhatsApp.classList.add('d-none'); 
     
+    // Repopula os campos
     document.getElementById('nome-igreja').value = ultimoRelatorioSalvo.nomeIgreja;
     document.getElementById('tipo-culto').value = ultimoRelatorioSalvo.tipoCulto;
     
+    // Dispara o evento change para mostrar os campos corretos
     tipoCultoSelect.dispatchEvent(new Event('change'));
 
+    // Preenche os números
     document.getElementById('membros-adultos').value = ultimoRelatorioSalvo.membrosAdultos;
     document.getElementById('membros-cias').value = ultimoRelatorioSalvo.membrosCias;
     document.getElementById('visitantes-adultos').value = ultimoRelatorioSalvo.visitantesAdultos;
@@ -211,8 +260,10 @@ form.addEventListener('input', () => {
     if (!modoEdicaoImediata) {
         btnWhatsApp.classList.add('d-none');
         msgSucesso.classList.add('d-none');
-        containerCorrigir.classList.add('d-none');
-        msgErro.classList.add('d-none'); // Esconde erro ao tentar novamente
+        // Não escondemos o containerCorrigir no input se ele veio do localStorage, 
+        // mas se o usuário começar a digitar, idealmente ele está criando um novo ou editando o atual.
+        // Vamos manter visível para permitir a correção a qualquer momento a menos que ele clique nele.
+        msgErro.classList.add('d-none'); 
     }
 });
 
@@ -397,6 +448,8 @@ Classes (Cias): ${vC}
         }
 
         ultimoRelatorioSalvo = relatorio;
+        // Salva no LocalStorage para persistir após refresh
+        salvarLocalmente(ultimoIdSalvo, relatorio);
 
         msgSucesso.innerHTML = modoEdicaoImediata 
             ? '<i class="bi bi-check-circle-fill"></i> Relatório atualizado com sucesso!'
@@ -420,7 +473,6 @@ Classes (Cias): ${vC}
 
     } catch (e) {
         console.error("Erro ao salvar/atualizar: ", e);
-        // MOSTRA O ERRO REAL PARA O USUÁRIO AJUDAR NO DEBUG
         msgErro.innerText = "Erro ao salvar: " + e.message; 
         msgErro.classList.remove('d-none');
     } finally {
@@ -433,3 +485,6 @@ btnWhatsApp.addEventListener('click', () => {
         window.open(urlWhatsAppArmazenada, '_blank');
     }
 });
+
+// Tenta carregar dados do localStorage ao iniciar
+carregarUltimoLocalmente();
