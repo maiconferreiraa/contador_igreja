@@ -71,7 +71,7 @@ const editContainerVisitantesCias = document.getElementById('edit-container-visi
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
 let currentUserRole = null; 
-let idParaExcluir = null; // Variável CRÍTICA para a exclusão
+let idParaExcluir = null; 
 
 // --- 1. VERIFICAÇÃO DE AUTENTICAÇÃO ---
 onAuthStateChanged(auth, (user) => {
@@ -107,15 +107,18 @@ async function verificarPermissoes(user) {
         }
 
         if (currentUserRole === "admin") {
+            // ADMIN VÊ TUDO
             filtroIgrejaContainer.classList.remove('d-none');
             thAcoesGerais.classList.remove('d-none');
             thAcoesEBD.classList.remove('d-none');
             thAcoesTrombetas.classList.remove('d-none');
             carregarDadosIniciais(null); 
-        } else if (currentUserRole === "secretaria") {
+
+        } else if (currentUserRole === "secretaria" || currentUserRole === "obreiro") {
+            // SECRETARIA OU OBREIRO (VÊ APENAS SUA IGREJA)
             const userIgreja = userData.igreja;
             if (!userIgreja) {
-                 alert("Sua conta de secretaria não está associada a nenhuma igreja.");
+                 alert("Sua conta não está associada a nenhuma igreja.");
                  signOut(auth); 
                  return;
             }
@@ -339,7 +342,8 @@ function renderizarTabelaTrombetas(dados) {
 }
 
 function addAcoes(tr, id) {
-    if (currentUserRole === 'admin' || currentUserRole === 'secretaria') {
+    // Permite que 'obreiro' veja os botões também
+    if (currentUserRole === 'admin' || currentUserRole === 'secretaria' || currentUserRole === 'obreiro') {
         const tdAcoes = document.createElement('td');
         tdAcoes.innerHTML = `
             <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${id}" title="Editar">
@@ -415,7 +419,6 @@ function abrirModalEdicao(id) {
 
     toggleEditCampos(); 
     
-    // USA window.bootstrap para garantir acesso global e evitar erro "undefined"
     const editModal = window.bootstrap.Modal.getOrCreateInstance(editModalEl);
     editModal.show();
 }
@@ -512,21 +515,14 @@ function abrirModalExclusao(id) {
     
     document.getElementById('delete-nome-igreja').innerText = docParaExcluir.nomeIgreja;
     document.getElementById('delete-data-completa').innerText = docParaExcluir.dataCompleta;
-    idParaExcluir = id; // Salva o ID na variável global
-    console.log("ID salvo na variável global:", idParaExcluir);
+    idParaExcluir = id; 
     
-    // USA window.bootstrap para abrir o modal
     const deleteModal = window.bootstrap.Modal.getOrCreateInstance(deleteModalEl);
     deleteModal.show();
 }
 
 btnConfirmDelete.addEventListener('click', async () => { 
-    console.log("Botão Sim, Excluir clicado. ID Alvo:", idParaExcluir);
-    
-    if (!idParaExcluir) {
-        console.error("Erro: ID para excluir é nulo!");
-        return;
-    }
+    if (!idParaExcluir) return;
     
     btnConfirmDelete.disabled = true;
     btnConfirmDelete.innerText = "Excluindo...";
@@ -535,12 +531,9 @@ btnConfirmDelete.addEventListener('click', async () => {
     const nomeIgreja = docExcluido?.nomeIgreja;
     
     try {
-        console.log("Enviando comando deleteDoc para o Firebase...");
         const docRef = doc(db, "contagens", idParaExcluir);
         await deleteDoc(docRef);
-        console.log("Documento excluído com sucesso do Firebase.");
         
-        // Fecha o modal
         const deleteModal = window.bootstrap.Modal.getInstance(deleteModalEl);
         if (deleteModal) deleteModal.hide();
         
@@ -548,7 +541,7 @@ btnConfirmDelete.addEventListener('click', async () => {
         carregarDadosIniciais(filtroIgrejaAdmin);
     } catch (error) {
         console.error("Erro FATAL ao excluir: ", error);
-        alert("Falha ao excluir. Verifique o Console (F12) para detalhes.");
+        alert("Falha ao excluir.");
     } finally {
         idParaExcluir = null; 
         btnConfirmDelete.disabled = false;
