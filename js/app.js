@@ -1,7 +1,9 @@
 // Importa 'db' e 'auth'
-import { db } from './firebase-config.js';
-// Importa as funções do Firestore que vamos usar
-import { collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { db, auth } from './firebase-config.js'; // ADICIONADO: auth
+// Importa funções de Autenticação (Login Anônimo)
+import { signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+// Importa as funções do Firestore necessárias
+import { collection, addDoc, Timestamp, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 // --- REFERÊNCIAS AOS ELEMENTOS ---
 const form = document.getElementById('contador-form');
@@ -12,24 +14,53 @@ const msgErro = document.getElementById('mensagem-erro');
 const dataAtualEl = document.getElementById('data-atual');
 const tipoCultoSelect = document.getElementById('tipo-culto');
 
-// --- NOVOS ELEMENTOS PARA DATA MANUAL (ESQUECI DE LANÇAR) ---
+// Data Manual
 const btnEsqueci = document.getElementById('btn-esqueci');
 const containerDataManual = document.getElementById('container-data-manual');
 const dataManualInput = document.getElementById('data-manual-input');
+
+// Correção
+const containerCorrigir = document.getElementById('container-corrigir');
+const btnCorrigirUltimo = document.getElementById('btn-corrigir-ultimo');
 
 // Containers dos campos
 const camposCultoPadrao = document.getElementById('campos-culto-padrao');
 const camposTrombetas = document.getElementById('campos-trombetas');
 
-// Containers específicos de CIAs para esconder (exceto na EBD)
+// Containers específicos de CIAs
 const containerMembrosCias = document.getElementById('container-membros-cias');
 const containerVisitantesCias = document.getElementById('container-visitantes-cias');
 
 // --- VARIÁVEIS DE ESTADO ---
 let modoDataManual = false;
+let ultimoIdSalvo = null;        
+let ultimoRelatorioSalvo = null; 
+let modoEdicaoImediata = false;  
+
+// --- ESTADO INICIAL DO BOTÃO ---
+// Bloqueia o botão até confirmar a conexão com o Firebase
+btnSalvar.disabled = true;
+btnSalvar.innerText = "Conectando...";
+
+// --- AUTENTICAÇÃO ANÔNIMA (Correção do Erro de Permissão) ---
+// Tenta logar anonimamente ao carregar a página para ter permissão de escrita
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        console.log("Usuário autenticado (ID):", user.uid);
+        // Libera o botão apenas quando temos um usuário válido
+        btnSalvar.disabled = false;
+        btnSalvar.innerText = "Salvar Relatório";
+    } else {
+        // Se não tiver usuário, cria um anônimo
+        signInAnonymously(auth).catch((error) => {
+            console.error("Erro na autenticação anônima:", error);
+            msgErro.innerText = "Erro de conexão: Verifique sua internet.";
+            msgErro.classList.remove('d-none');
+        });
+    }
+});
 
 // --- LÓGICA DO TOTALIZADOR EM TEMPO REAL ---
-
 const inputsContagemPadrao = [
     document.getElementById('membros-adultos'),
     document.getElementById('membros-cias'),
@@ -59,7 +90,6 @@ function atualizarTotalDisplay() {
             total += parseInt(input.value) || 0;
         });
     } else {
-        // Soma os 4 campos Padrão (mesmo que escondidos/zerados)
         inputsContagemPadrao.forEach(input => {
             total += parseInt(input.value) || 0;
         });
@@ -70,7 +100,6 @@ function atualizarTotalDisplay() {
     }
 }
 
-// Adiciona o evento de input para recalcular em tempo real
 [...inputsContagemPadrao, ...inputsContagemTrombetas].forEach(input => {
     input.addEventListener('input', atualizarTotalDisplay);
 });
@@ -79,30 +108,23 @@ function atualizarTotalDisplay() {
 tipoCultoSelect.addEventListener('change', () => {
     const tipoCulto = tipoCultoSelect.value;
     
-    // 1. Reseta tudo primeiro (esconde tudo)
     camposCultoPadrao.classList.add('d-none');
     camposTrombetas.classList.add('d-none');
     containerMembrosCias.classList.add('d-none');
     containerVisitantesCias.classList.add('d-none');
 
-    // 2. Aplica a lógica
     if (tipoCulto === "TROMBETAS E FESTAS") {
-        // CASO 1: TROMBETAS
         camposTrombetas.classList.remove('d-none');
-        
     } else if (tipoCulto === "EBD") {
-        // CASO 2: EBD (Único que mostra CIAs e Adultos)
         camposCultoPadrao.classList.remove('d-none');
         containerMembrosCias.classList.remove('d-none');
         containerVisitantesCias.classList.remove('d-none');
-
     } else {
-        // CASO 3: TODOS OS OUTROS (Diário, Ceia, Vigília, Casamento, etc.)
-        // Mostra padrão, mas ESCONDE CIAs
         camposCultoPadrao.classList.remove('d-none');
-        // Garante que CIAs estão zerados
-        document.getElementById('membros-cias').value = 0;
-        document.getElementById('visitantes-cias').value = 0;
+        if(!modoEdicaoImediata) { 
+            document.getElementById('membros-cias').value = 0;
+            document.getElementById('visitantes-cias').value = 0;
+        }
     }
     
     atualizarTotalDisplay(); 
@@ -111,29 +133,20 @@ tipoCultoSelect.addEventListener('change', () => {
 // --- LÓGICA DO BOTÃO "ESQUECI DE LANÇAR" ---
 if (btnEsqueci) {
     btnEsqueci.addEventListener('click', () => {
-        modoDataManual = !modoDataManual; // Alterna (Liga/Desliga)
-
+        modoDataManual = !modoDataManual;
         if (modoDataManual) {
-            // MOSTRA O CALENDÁRIO
             dataAtualEl.classList.add('d-none');
             containerDataManual.classList.remove('d-none');
-            
-            // Muda aparência do botão
             btnEsqueci.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Voltar para Lançamento de Hoje';
             btnEsqueci.classList.replace('btn-outline-warning', 'btn-outline-secondary');
-            
-            // Define data padrão se vazio
             if(!dataManualInput.value) {
                 const now = new Date();
                 now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                 dataManualInput.value = now.toISOString().slice(0, 16);
             }
         } else {
-            // ESCONDE O CALENDÁRIO (Volta ao normal)
             containerDataManual.classList.add('d-none');
             dataAtualEl.classList.remove('d-none');
-            
-            // Reseta botão
             btnEsqueci.innerHTML = '<i class="bi bi-calendar-event"></i> Esqueci de Lançar (Data Passada)';
             btnEsqueci.classList.replace('btn-outline-secondary', 'btn-outline-warning');
             dataManualInput.value = "";
@@ -143,9 +156,7 @@ if (btnEsqueci) {
 
 // --- HELPER DE FORMATAÇÃO DE DATA ---
 function formatarDataParaString(dataObj) {
-    function capitalizar(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
+    function capitalizar(string) { return string.charAt(0).toUpperCase() + string.slice(1); }
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     let dataTexto = dataObj.toLocaleDateString('pt-BR', options);
     dataTexto = dataTexto.split(', ').map(capitalizar).join(', ');
@@ -155,43 +166,88 @@ function formatarDataParaString(dataObj) {
     return `${dataTexto} às ${horaTexto}`;
 }
 
-// --- EXIBIÇÃO DA DATA INICIAL (HOJE) ---
 dataAtualEl.innerText = formatarDataParaString(new Date());
 
-// --- LÓGICA DO FORMULÁRIO (SALVAR) ---
+// --- LÓGICA DO BOTÃO "CORRIGIR ÚLTIMO ENVIO" ---
+btnCorrigirUltimo.addEventListener('click', () => {
+    if (!ultimoRelatorioSalvo || !ultimoIdSalvo) return;
+
+    modoEdicaoImediata = true;
+    containerCorrigir.classList.add('d-none'); 
+    msgSucesso.classList.add('d-none'); 
+    btnWhatsApp.classList.add('d-none'); 
+    
+    document.getElementById('nome-igreja').value = ultimoRelatorioSalvo.nomeIgreja;
+    document.getElementById('tipo-culto').value = ultimoRelatorioSalvo.tipoCulto;
+    
+    tipoCultoSelect.dispatchEvent(new Event('change'));
+
+    document.getElementById('membros-adultos').value = ultimoRelatorioSalvo.membrosAdultos;
+    document.getElementById('membros-cias').value = ultimoRelatorioSalvo.membrosCias;
+    document.getElementById('visitantes-adultos').value = ultimoRelatorioSalvo.visitantesAdultos;
+    document.getElementById('visitantes-cias').value = ultimoRelatorioSalvo.visitantesCias;
+    
+    document.getElementById('trombetas-membros-criancas').value = ultimoRelatorioSalvo.trombetasMembrosCriancas;
+    document.getElementById('trombetas-membros-intermediarios').value = ultimoRelatorioSalvo.trombetasMembrosIntermediarios;
+    document.getElementById('trombetas-membros-adolescentes').value = ultimoRelatorioSalvo.trombetasMembrosAdolescentes;
+    document.getElementById('trombetas-membros-adultos').value = ultimoRelatorioSalvo.trombetasMembrosAdultos;
+    document.getElementById('trombetas-visitantes-criancas').value = ultimoRelatorioSalvo.trombetasVisitantesCriancas;
+    document.getElementById('trombetas-visitantes-intermediarios').value = ultimoRelatorioSalvo.trombetasVisitantesIntermediarios;
+    document.getElementById('trombetas-visitantes-adolescentes').value = ultimoRelatorioSalvo.trombetasVisitantesAdolescentes;
+    document.getElementById('trombetas-visitantes-adultos').value = ultimoRelatorioSalvo.trombetasVisitantesAdultos;
+
+    btnSalvar.innerText = "Atualizar Relatório";
+    btnSalvar.classList.replace('btn-primary', 'btn-warning');
+    
+    atualizarTotalDisplay();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+
+// --- LÓGICA DO FORMULÁRIO (SALVAR / ATUALIZAR) ---
 let urlWhatsAppArmazenada = '';
 
 form.addEventListener('input', () => {
-    btnWhatsApp.classList.add('d-none');
-    msgSucesso.classList.add('d-none');
-    msgErro.classList.add('d-none');
+    if (!modoEdicaoImediata) {
+        btnWhatsApp.classList.add('d-none');
+        msgSucesso.classList.add('d-none');
+        containerCorrigir.classList.add('d-none');
+        msgErro.classList.add('d-none'); // Esconde erro ao tentar novamente
+    }
 });
 
 form.addEventListener('submit', async function(event) {
     event.preventDefault(); 
     
-    // --- DECISÃO DA DATA (Manual ou Automática) ---
     let dataReferencia;
     
-    if (modoDataManual) {
-        if (!dataManualInput.value) {
-            alert("Por favor, selecione a data e a hora do culto.");
-            return;
+    if (modoEdicaoImediata && ultimoRelatorioSalvo) {
+        if (modoDataManual && dataManualInput.value) {
+            dataReferencia = new Date(dataManualInput.value);
+        } else {
+            dataReferencia = ultimoRelatorioSalvo.timestamp.toDate(); 
         }
-        dataReferencia = new Date(dataManualInput.value);
     } else {
-        dataReferencia = new Date();
+        if (modoDataManual) {
+            if (!dataManualInput.value) {
+                alert("Por favor, selecione a data e a hora do culto.");
+                return;
+            }
+            dataReferencia = new Date(dataManualInput.value);
+        } else {
+            dataReferencia = new Date();
+        }
     }
     
-    // Formata a string bonita para exibir na tabela e no WhatsApp
     const dataFormatada = formatarDataParaString(dataReferencia);
 
     btnSalvar.disabled = true;
-    btnSalvar.innerText = "Salvando...";
+    btnSalvar.innerText = modoEdicaoImediata ? "Atualizando..." : "Salvando...";
     
     btnWhatsApp.classList.add('d-none');
     msgSucesso.classList.add('d-none');
     msgErro.classList.add('d-none');
+    containerCorrigir.classList.add('d-none');
     urlWhatsAppArmazenada = '';
 
     const nomeIgreja = document.getElementById('nome-igreja').value;
@@ -201,7 +257,6 @@ form.addEventListener('submit', async function(event) {
         nomeIgreja: nomeIgreja,
         tipoCulto: tipoCulto,
         dataCompleta: dataFormatada,
-        // IMPORTANTE: Usa a dataReferencia para o Timestamp (ordenação correta no admin)
         timestamp: Timestamp.fromDate(dataReferencia),
         membrosAdultos: 0,
         membrosCias: 0,
@@ -229,7 +284,6 @@ Data: _${dataFormatada}_
 -----------------------------------`;
 
     if (tipoCulto === "TROMBETAS E FESTAS") {
-        // === TROMBETAS (Completo) ===
         const mC = parseInt(document.getElementById('trombetas-membros-criancas').value) || 0;
         const mI = parseInt(document.getElementById('trombetas-membros-intermediarios').value) || 0;
         const mAd = parseInt(document.getElementById('trombetas-membros-adolescentes').value) || 0;
@@ -273,9 +327,7 @@ Adultos: ${vA}
 -----------------------------------
 *TOTAL GERAL: ${relatorio.totalGeral}*
         `;
-
     } else if (tipoCulto === "EBD") {
-        // === EBD (Membros e CIAs) ===
         const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
         const mC = parseInt(document.getElementById('membros-cias').value) || 0;
         const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
@@ -307,9 +359,7 @@ Classes (Cias): ${vC}
 -----------------------------------
 *TOTAL GERAL: ${relatorio.totalGeral}*
         `;
-
     } else {
-        // === TODOS OS OUTROS (Apenas Membros e Visitantes - SEM CIAs) ===
         const mA = parseInt(document.getElementById('membros-adultos').value) || 0;
         const vA = parseInt(document.getElementById('visitantes-adultos').value) || 0;
         const mC = 0;
@@ -326,7 +376,6 @@ Classes (Cias): ${vC}
         relatorio.totalVisitantes = totalVisitantes;
         relatorio.totalGeral = totalMembros + totalVisitantes;
 
-        // MENSAGEM MODIFICADA: Apenas "Membros" e "Visitantes" (Sem a palavra Adulto)
         mensagemWhats += `
 *MEMBROS*: ${mA}
 
@@ -338,38 +387,49 @@ Classes (Cias): ${vC}
     }
 
     try {
-        await addDoc(collection(db, "contagens"), relatorio);
-        msgSucesso.classList.remove('d-none');
-        setTimeout(() => msgSucesso.classList.add('d-none'), 3000);
-        
-        form.reset(); 
-        atualizarTotalDisplay(); 
-        
-        // Força o reset visual da lógica de campos
-        tipoCultoSelect.dispatchEvent(new Event('change'));
-
-        // Se estava no modo manual, volta para o automático após salvar
-        if(modoDataManual) {
-            btnEsqueci.click(); 
+        if (modoEdicaoImediata && ultimoIdSalvo) {
+            await updateDoc(doc(db, "contagens", ultimoIdSalvo), relatorio);
+            console.log("Documento atualizado:", ultimoIdSalvo);
+        } else {
+            const docRef = await addDoc(collection(db, "contagens"), relatorio);
+            ultimoIdSalvo = docRef.id; 
+            console.log("Documento criado:", ultimoIdSalvo);
         }
 
+        ultimoRelatorioSalvo = relatorio;
+
+        msgSucesso.innerHTML = modoEdicaoImediata 
+            ? '<i class="bi bi-check-circle-fill"></i> Relatório atualizado com sucesso!'
+            : '<i class="bi bi-check-circle-fill"></i> Dados salvos com sucesso!';
+            
+        msgSucesso.classList.remove('d-none');
+        containerCorrigir.classList.remove('d-none');
+        
         urlWhatsAppArmazenada = `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
         btnWhatsApp.classList.remove('d-none');
+
+        form.reset(); 
+        atualizarTotalDisplay(); 
+        tipoCultoSelect.dispatchEvent(new Event('change'));
+
+        if(modoDataManual) btnEsqueci.click(); 
         
+        modoEdicaoImediata = false; 
+        btnSalvar.innerText = "Salvar Relatório";
+        btnSalvar.classList.replace('btn-warning', 'btn-primary');
+
     } catch (e) {
-        console.error("Erro ao adicionar documento: ", e);
+        console.error("Erro ao salvar/atualizar: ", e);
+        // MOSTRA O ERRO REAL PARA O USUÁRIO AJUDAR NO DEBUG
+        msgErro.innerText = "Erro ao salvar: " + e.message; 
         msgErro.classList.remove('d-none');
     } finally {
         btnSalvar.disabled = false;
-        btnSalvar.innerText = "Salvar Relatório";
     }
 });
 
-// Lógica de COMPARTILHAR (ao clicar no segundo botão)
 btnWhatsApp.addEventListener('click', () => {
     if (urlWhatsAppArmazenada) {
         window.open(urlWhatsAppArmazenada, '_blank');
-        btnWhatsApp.classList.add('d-none');
-        urlWhatsAppArmazenada = '';
     }
 });
