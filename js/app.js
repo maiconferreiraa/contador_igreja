@@ -95,7 +95,8 @@ function atualizarTotalDisplay() {
     let total = 0;
     const tipoCulto = tipoCultoSelect.value;
 
-    if (tipoCulto === "TROMBETAS E FESTAS") {
+    // APLICADO: TROMBETAS E EVANGELIZAÇÃO CIAS
+    if (tipoCulto === "TROMBETAS E FESTAS" || tipoCulto === "EVANGELIZAÇÃO CIAS") {
         inputsContagemTrombetas.forEach(input => {
             total += parseInt(input.value) || 0;
         });
@@ -123,7 +124,8 @@ tipoCultoSelect.addEventListener('change', () => {
     containerMembrosCias.classList.add('d-none');
     containerVisitantesCias.classList.add('d-none');
 
-    if (tipoCulto === "TROMBETAS E FESTAS") {
+    // APLICADO: TROMBETAS E EVANGELIZAÇÃO CIAS
+    if (tipoCulto === "TROMBETAS E FESTAS" || tipoCulto === "EVANGELIZAÇÃO CIAS") {
         camposTrombetas.classList.remove('d-none');
     } else if (tipoCulto === "EBD") {
         camposCultoPadrao.classList.remove('d-none');
@@ -334,7 +336,8 @@ Data: _${dataFormatada}_
 
 -----------------------------------`;
 
-    if (tipoCulto === "TROMBETAS E FESTAS") {
+    // APLICADO: TROMBETAS E EVANGELIZAÇÃO CIAS
+    if (tipoCulto === "TROMBETAS E FESTAS" || tipoCulto === "EVANGELIZAÇÃO CIAS") {
         const mC = parseInt(document.getElementById('trombetas-membros-criancas').value) || 0;
         const mI = parseInt(document.getElementById('trombetas-membros-intermediarios').value) || 0;
         const mAd = parseInt(document.getElementById('trombetas-membros-adolescentes').value) || 0;

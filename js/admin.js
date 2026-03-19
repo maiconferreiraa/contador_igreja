@@ -89,13 +89,14 @@ async function verificarPermissoes(user) {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            alert("Sua conta não tem permissões definidas.");
+            alert(`ATENÇÃO!\nA conta logou com sucesso, mas o documento no Firestore não foi encontrado.\n\nO sistema procurou na coleção "usuarios" pelo ID exato:\n${user.uid}\n\nPor favor, crie um documento com este ID exato no Firebase.`);
             signOut(auth); 
             return;
         }
 
         const userData = userDoc.data();
-        currentUserRole = userData.role; 
+        
+        currentUserRole = userData.role ? String(userData.role).trim().toLowerCase() : null; 
 
         loadingDiv.classList.add('d-none');
         adminContent.classList.remove('d-none');
@@ -118,7 +119,7 @@ async function verificarPermissoes(user) {
             // SECRETARIA OU OBREIRO (VÊ APENAS SUA IGREJA)
             const userIgreja = userData.igreja;
             if (!userIgreja) {
-                 alert("Sua conta não está associada a nenhuma igreja.");
+                 alert("Sua conta não está associada a nenhuma igreja.\nAdicione o campo 'igreja' no seu documento.");
                  signOut(auth); 
                  return;
             }
@@ -132,7 +133,7 @@ async function verificarPermissoes(user) {
 
             carregarDadosIniciais(userIgreja); 
         } else {
-            alert("Permissão desconhecida.");
+            alert(`PERMISSÃO DESCONHECIDA!\nO sistema encontrou o seu documento, mas não reconheceu o seu cargo.\n\nCargo encontrado: "${userData.role}"\nUID: ${user.uid}\n\nO campo 'role' deve ser exatamente: admin, secretaria ou obreiro.`);
             signOut(auth);
         }
 
@@ -253,7 +254,7 @@ function renderizarTabelas(dados) {
     const dadosTrombetas = [];
     
     dados.forEach(doc => {
-        if (doc.tipoCulto === "TROMBETAS E FESTAS") {
+        if (doc.tipoCulto === "TROMBETAS E FESTAS" || doc.tipoCulto === "EVANGELIZAÇÃO CIAS") {
             dadosTrombetas.push(doc);
         } else if (doc.tipoCulto === "EBD") {
             dadosEBD.push(doc);
@@ -324,7 +325,7 @@ function renderizarTabelaTrombetas(dados) {
     dados.forEach(doc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${doc.nomeIgreja}</td>
+            <td>${doc.nomeIgreja}<br><small class="text-muted">${doc.tipoCulto}</small></td>
             <td>${doc.dataCompleta}</td>
             <td>${doc.trombetasMembrosCriancas || 0}</td>
             <td>${doc.trombetasMembrosIntermediarios || 0}</td>
@@ -342,7 +343,6 @@ function renderizarTabelaTrombetas(dados) {
 }
 
 function addAcoes(tr, id) {
-    // Permite que 'obreiro' veja os botões também
     if (currentUserRole === 'admin' || currentUserRole === 'secretaria' || currentUserRole === 'obreiro') {
         const tdAcoes = document.createElement('td');
         tdAcoes.innerHTML = `
@@ -368,7 +368,6 @@ document.getElementById('relatoriosTabContent').addEventListener('click', (e) =>
         abrirModalEdicao(docId);
     }
     if (target.classList.contains('btn-delete')) {
-        console.log("Botão Lixeira Clicado para ID:", docId);
         abrirModalExclusao(docId);
     }
 });
@@ -383,7 +382,7 @@ function toggleEditCampos() {
     if (editContainerMembrosCias) editContainerMembrosCias.classList.remove('d-none');
     if (editContainerVisitantesCias) editContainerVisitantesCias.classList.remove('d-none');
 
-    if (tipo === "TROMBETAS E FESTAS") {
+    if (tipo === "TROMBETAS E FESTAS" || tipo === "EVANGELIZAÇÃO CIAS") {
         editCamposTrombetas.classList.remove('d-none');
     } else if (tipo === "EBD") {
         editCamposPadrao.classList.remove('d-none');
@@ -436,7 +435,7 @@ btnSaveEdit.addEventListener('click', async () => {
         let totalMembros = 0;
         let totalVisitantes = 0;
 
-        if (tipoCulto === "TROMBETAS E FESTAS") {
+        if (tipoCulto === "TROMBETAS E FESTAS" || tipoCulto === "EVANGELIZAÇÃO CIAS") {
             const mC = parseInt(document.getElementById('edit-trombetas-membros-criancas').value) || 0;
             const mI = parseInt(document.getElementById('edit-trombetas-membros-intermediarios').value) || 0;
             const mAd = parseInt(document.getElementById('edit-trombetas-membros-adolescentes').value) || 0;
@@ -504,12 +503,10 @@ btnSaveEdit.addEventListener('click', async () => {
 });
 
 
-// --- 10. EXCLUSÃO (ATUALIZADA) ---
+// --- 10. EXCLUSÃO ---
 function abrirModalExclusao(id) {
-    console.log("Abrindo Modal de Exclusão para:", id);
     const docParaExcluir = todosOsDocumentos.find(doc => doc.id === id);
     if (!docParaExcluir) {
-        console.error("Documento não encontrado na memória!");
         return;
     }
     
