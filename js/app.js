@@ -3,7 +3,7 @@ import { db, auth } from './firebase-config.js'; // ADICIONADO: auth
 // Importa funções de Autenticação (Login Anônimo)
 import { signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 // Importa as funções do Firestore necessárias
-import { collection, addDoc, Timestamp, doc, updateDoc, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { collection, addDoc, Timestamp, doc, updateDoc, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 // --- REFERÊNCIAS AOS ELEMENTOS ---
 const form = document.getElementById('contador-form');
@@ -489,7 +489,7 @@ btnWhatsApp.addEventListener('click', () => {
     }
 });
 
-// --- LEMBRETE DE LANÇAMENTO PENDENTE (culto do dia anterior em diante) ---
+// --- LEMBRETE DE LANÇAMENTO PENDENTE (por culto esperado em cada dia) ---
 // Dias da semana sem culto (0=domingo ... 5=sexta-feira, 6=sábado)
 const DIAS_SEM_CULTO = [5];
 const LIMITE_DIAS_VERIFICADOS = 21; // não fica varrendo o histórico inteiro de igrejas inativas
@@ -501,70 +501,81 @@ function formatarDataCurta(dataObj) {
     return capitalizar(dataObj.toLocaleDateString('pt-BR', options));
 }
 
-function mesmoDia(a, b) {
-    return a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate();
+function chaveData(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-// Monta a lista de dias de culto (pulando sexta-feira) entre o último lançamento
-// (exclusive) e ontem (inclusive), em ordem cronológica (mais antigo primeiro)
-function calcularDiasPendentes(ultimoTimestamp) {
-    const dias = [];
-    const cursor = new Date();
-    cursor.setHours(0, 0, 0, 0);
-    cursor.setDate(cursor.getDate() - 1); // começa em ontem
-
-    for (let i = 0; i < LIMITE_DIAS_VERIFICADOS; i++) {
-        if (ultimoTimestamp && mesmoDia(cursor, ultimoTimestamp)) break; // chegou no último lançamento
-
-        if (!DIAS_SEM_CULTO.includes(cursor.getDay())) {
-            dias.unshift(new Date(cursor));
-        }
-
-        // sem nenhum histórico: avisa só o dia mais recente pendente, sem "adivinhar" mais pra trás
-        if (!ultimoTimestamp && dias.length >= 1) break;
-
-        cursor.setDate(cursor.getDate() - 1);
+// Domingo tem 2 cultos (EBD de manhã + culto à noite); os outros dias com culto têm 1 (Culto Diário)
+function servicosEsperados(dia) {
+    if (dia.getDay() === 0) {
+        return [
+            { tipoEsperado: 'EBD', rotulo: 'EBD (domingo de manhã)', hora: 9 },
+            { tipoEsperado: 'GERAL', rotulo: 'Culto de domingo à noite', hora: 19 }
+        ];
     }
-    return dias;
+    return [{ tipoEsperado: 'GERAL', rotulo: 'Culto Diário', hora: 19 }];
 }
 
-// Consulta o Firestore para saber quais cultos da igreja selecionada ainda não foram lançados
+// Consulta o Firestore e monta a lista de cultos específicos que a igreja ainda não lançou
 async function verificarLancamentoPendente(igreja) {
     const modalEl = document.getElementById('modalLembrete');
     if (!modalEl || !igreja) return;
 
-    let ultimoTimestamp = null;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const inicioJanela = new Date(hoje);
+    inicioJanela.setDate(inicioJanela.getDate() - LIMITE_DIAS_VERIFICADOS);
+
+    const tiposPorDia = new Map(); // 'YYYY-MM-DD' -> [tipoCulto, ...]
     try {
         const q = query(
             collection(db, "contagens"),
             where("nomeIgreja", "==", igreja),
-            orderBy("timestamp", "desc"),
-            limit(1)
+            where("timestamp", ">=", Timestamp.fromDate(inicioJanela)),
+            where("timestamp", "<", Timestamp.fromDate(hoje)),
+            orderBy("timestamp", "desc")
         );
         const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            ultimoTimestamp = snapshot.docs[0].data().timestamp.toDate();
-        }
+        snapshot.forEach(docSnap => {
+            const dados = docSnap.data();
+            const chave = chaveData(dados.timestamp.toDate());
+            if (!tiposPorDia.has(chave)) tiposPorDia.set(chave, []);
+            tiposPorDia.get(chave).push(dados.tipoCulto);
+        });
     } catch (e) {
         console.error("Erro ao verificar lançamento pendente:", e);
         return; // não incomoda o usuário se a checagem falhar
     }
 
-    const diasPendentes = calcularDiasPendentes(ultimoTimestamp);
-    if (diasPendentes.length === 0) return;
+    const pendentes = [];
+    const cursor = new Date(inicioJanela);
+    while (cursor < hoje) {
+        if (!DIAS_SEM_CULTO.includes(cursor.getDay())) {
+            const tiposDoDia = tiposPorDia.get(chaveData(cursor)) || [];
+            servicosEsperados(cursor).forEach(servico => {
+                const jaLancado = servico.tipoEsperado === 'EBD'
+                    ? tiposDoDia.includes('EBD')
+                    : tiposDoDia.some(t => t !== 'EBD');
+                if (!jaLancado) {
+                    pendentes.push({ data: new Date(cursor), ...servico });
+                }
+            });
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (pendentes.length === 0) return;
 
     document.getElementById('lembrete-titulo').innerText =
-        diasPendentes.length > 1 ? 'Lançamentos pendentes' : 'Lançamento pendente';
+        pendentes.length > 1 ? 'Lançamentos pendentes' : 'Lançamento pendente';
     document.getElementById('lembrete-intro').innerText =
-        diasPendentes.length > 1 ? 'Os cultos abaixo ainda não foram lançados:' : 'O culto abaixo ainda não foi lançado:';
+        pendentes.length > 1 ? 'Os cultos abaixo ainda não foram lançados:' : 'O culto abaixo ainda não foi lançado:';
 
     const listaEl = document.getElementById('lembrete-lista-dias');
     listaEl.innerHTML = '';
-    diasPendentes.forEach(dia => {
+    pendentes.forEach(item => {
         const li = document.createElement('li');
-        li.innerText = formatarDataCurta(dia);
+        li.innerHTML = `${formatarDataCurta(item.data)} — <strong>${item.rotulo}</strong>`;
         listaEl.appendChild(li);
     });
 
@@ -572,12 +583,15 @@ async function verificarLancamentoPendente(igreja) {
     modal.show();
 
     document.getElementById('btn-lancar-pendente').addEventListener('click', () => {
-        const maisAntigo = diasPendentes[0];
+        const maisAntigo = pendentes[0];
         if (!modoDataManual) btnEsqueci.click();
-        const dataAlvo = new Date(maisAntigo);
-        dataAlvo.setHours(19, 30, 0, 0);
+        const dataAlvo = new Date(maisAntigo.data);
+        dataAlvo.setHours(maisAntigo.hora, 30, 0, 0);
         dataAlvo.setMinutes(dataAlvo.getMinutes() - dataAlvo.getTimezoneOffset());
         dataManualInput.value = dataAlvo.toISOString().slice(0, 16);
+
+        tipoCultoSelect.value = maisAntigo.tipoEsperado === 'EBD' ? 'EBD' : 'CULTO DIÁRIO';
+        tipoCultoSelect.dispatchEvent(new Event('change'));
     }, { once: true });
 }
 
