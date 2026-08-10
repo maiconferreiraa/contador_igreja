@@ -3,7 +3,7 @@ import { db, auth } from './firebase-config.js'; // ADICIONADO: auth
 // Importa funções de Autenticação (Login Anônimo)
 import { signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 // Importa as funções do Firestore necessárias
-import { collection, addDoc, Timestamp, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { collection, addDoc, Timestamp, doc, updateDoc, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 // --- REFERÊNCIAS AOS ELEMENTOS ---
 const form = document.getElementById('contador-form');
@@ -492,6 +492,7 @@ btnWhatsApp.addEventListener('click', () => {
 // --- LEMBRETE DE LANÇAMENTO PENDENTE (culto do dia anterior) ---
 // Dias da semana sem culto (0=domingo ... 5=sexta-feira, 6=sábado)
 const DIAS_SEM_CULTO = [5];
+let igrejaVerificadaLembrete = null;
 
 function formatarDataCurta(dataObj) {
     function capitalizar(string) { return string.charAt(0).toUpperCase() + string.slice(1); }
@@ -505,17 +506,32 @@ function mesmoDia(a, b) {
         a.getDate() === b.getDate();
 }
 
-function verificarLancamentoPendente() {
+// Consulta o Firestore para saber se a igreja selecionada já lançou o culto de ontem
+async function verificarLancamentoPendente(igreja) {
     const modalEl = document.getElementById('modalLembrete');
-    if (!modalEl) return;
+    if (!modalEl || !igreja) return;
 
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
 
     if (DIAS_SEM_CULTO.includes(ontem.getDay())) return;
 
-    const ultimaData = ultimoRelatorioSalvo ? ultimoRelatorioSalvo.timestamp.toDate() : null;
-    if (ultimaData && mesmoDia(ultimaData, ontem)) return;
+    try {
+        const q = query(
+            collection(db, "contagens"),
+            where("nomeIgreja", "==", igreja),
+            orderBy("timestamp", "desc"),
+            limit(1)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            const ultimoTimestamp = snapshot.docs[0].data().timestamp.toDate();
+            if (mesmoDia(ultimoTimestamp, ontem)) return; // já lançado, nada a fazer
+        }
+    } catch (e) {
+        console.error("Erro ao verificar lançamento pendente:", e);
+        return; // não incomoda o usuário se a checagem falhar
+    }
 
     document.getElementById('lembrete-data-culto').innerText = formatarDataCurta(ontem);
 
@@ -531,6 +547,14 @@ function verificarLancamentoPendente() {
     }, { once: true });
 }
 
+// Dispara a checagem somente depois que o usuário escolher a igreja
+document.getElementById('nome-igreja').addEventListener('change', (e) => {
+    const igreja = e.target.value;
+    if (igreja && igreja !== igrejaVerificadaLembrete) {
+        igrejaVerificadaLembrete = igreja;
+        verificarLancamentoPendente(igreja);
+    }
+});
+
 // Tenta carregar dados do localStorage ao iniciar
 carregarUltimoLocalmente();
-verificarLancamentoPendente();
