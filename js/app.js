@@ -489,9 +489,10 @@ btnWhatsApp.addEventListener('click', () => {
     }
 });
 
-// --- LEMBRETE DE LANÇAMENTO PENDENTE (culto do dia anterior) ---
+// --- LEMBRETE DE LANÇAMENTO PENDENTE (culto do dia anterior em diante) ---
 // Dias da semana sem culto (0=domingo ... 5=sexta-feira, 6=sábado)
 const DIAS_SEM_CULTO = [5];
+const LIMITE_DIAS_VERIFICADOS = 21; // não fica varrendo o histórico inteiro de igrejas inativas
 let igrejaVerificadaLembrete = null;
 
 function formatarDataCurta(dataObj) {
@@ -506,16 +507,35 @@ function mesmoDia(a, b) {
         a.getDate() === b.getDate();
 }
 
-// Consulta o Firestore para saber se a igreja selecionada já lançou o culto de ontem
+// Monta a lista de dias de culto (pulando sexta-feira) entre o último lançamento
+// (exclusive) e ontem (inclusive), em ordem cronológica (mais antigo primeiro)
+function calcularDiasPendentes(ultimoTimestamp) {
+    const dias = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    cursor.setDate(cursor.getDate() - 1); // começa em ontem
+
+    for (let i = 0; i < LIMITE_DIAS_VERIFICADOS; i++) {
+        if (ultimoTimestamp && mesmoDia(cursor, ultimoTimestamp)) break; // chegou no último lançamento
+
+        if (!DIAS_SEM_CULTO.includes(cursor.getDay())) {
+            dias.unshift(new Date(cursor));
+        }
+
+        // sem nenhum histórico: avisa só o dia mais recente pendente, sem "adivinhar" mais pra trás
+        if (!ultimoTimestamp && dias.length >= 1) break;
+
+        cursor.setDate(cursor.getDate() - 1);
+    }
+    return dias;
+}
+
+// Consulta o Firestore para saber quais cultos da igreja selecionada ainda não foram lançados
 async function verificarLancamentoPendente(igreja) {
     const modalEl = document.getElementById('modalLembrete');
     if (!modalEl || !igreja) return;
 
-    const ontem = new Date();
-    ontem.setDate(ontem.getDate() - 1);
-
-    if (DIAS_SEM_CULTO.includes(ontem.getDay())) return;
-
+    let ultimoTimestamp = null;
     try {
         const q = query(
             collection(db, "contagens"),
@@ -525,22 +545,36 @@ async function verificarLancamentoPendente(igreja) {
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-            const ultimoTimestamp = snapshot.docs[0].data().timestamp.toDate();
-            if (mesmoDia(ultimoTimestamp, ontem)) return; // já lançado, nada a fazer
+            ultimoTimestamp = snapshot.docs[0].data().timestamp.toDate();
         }
     } catch (e) {
         console.error("Erro ao verificar lançamento pendente:", e);
         return; // não incomoda o usuário se a checagem falhar
     }
 
-    document.getElementById('lembrete-data-culto').innerText = formatarDataCurta(ontem);
+    const diasPendentes = calcularDiasPendentes(ultimoTimestamp);
+    if (diasPendentes.length === 0) return;
+
+    document.getElementById('lembrete-titulo').innerText =
+        diasPendentes.length > 1 ? 'Lançamentos pendentes' : 'Lançamento pendente';
+    document.getElementById('lembrete-intro').innerText =
+        diasPendentes.length > 1 ? 'Os cultos abaixo ainda não foram lançados:' : 'O culto abaixo ainda não foi lançado:';
+
+    const listaEl = document.getElementById('lembrete-lista-dias');
+    listaEl.innerHTML = '';
+    diasPendentes.forEach(dia => {
+        const li = document.createElement('li');
+        li.innerText = formatarDataCurta(dia);
+        listaEl.appendChild(li);
+    });
 
     const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 
     document.getElementById('btn-lancar-pendente').addEventListener('click', () => {
+        const maisAntigo = diasPendentes[0];
         if (!modoDataManual) btnEsqueci.click();
-        const dataAlvo = new Date(ontem);
+        const dataAlvo = new Date(maisAntigo);
         dataAlvo.setHours(19, 30, 0, 0);
         dataAlvo.setMinutes(dataAlvo.getMinutes() - dataAlvo.getTimezoneOffset());
         dataManualInput.value = dataAlvo.toISOString().slice(0, 16);

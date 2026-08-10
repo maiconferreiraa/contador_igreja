@@ -219,22 +219,22 @@
 
     <!-- === MODAL: LEMBRETE DE LANÇAMENTO PENDENTE === -->
     <div class="modal fade" id="modalLembrete" tabindex="-1" aria-labelledby="modalLembreteLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalLembreteLabel">
-                        <i class="bi bi-exclamation-triangle-fill text-warning"></i> Lançamento pendente
+                        <i class="bi bi-exclamation-triangle-fill text-warning"></i> <span id="lembrete-titulo">Lançamento pendente</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-1">Parece que o culto de <strong id="lembrete-data-culto"></strong> ainda não foi lançado.</p>
-                    <p class="mb-0 text-muted small">Deseja lançar agora os dados desse culto?</p>
+                    <p class="mb-2" id="lembrete-intro">Os cultos abaixo ainda não foram lançados:</p>
+                    <ul id="lembrete-lista-dias" class="mb-0"></ul>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Depois</button>
                     <button type="button" class="btn btn-warning" id="btn-lancar-pendente" data-bs-dismiss="modal">
-                        <i class="bi bi-calendar-event"></i> Lançar agora
+                        <i class="bi bi-calendar-event"></i> Lançar o mais antigo
                     </button>
                 </div>
             </div>
