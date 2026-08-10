@@ -489,5 +489,48 @@ btnWhatsApp.addEventListener('click', () => {
     }
 });
 
+// --- LEMBRETE DE LANÇAMENTO PENDENTE (culto do dia anterior) ---
+// Dias da semana sem culto (0=domingo ... 5=sexta-feira, 6=sábado)
+const DIAS_SEM_CULTO = [5];
+
+function formatarDataCurta(dataObj) {
+    function capitalizar(string) { return string.charAt(0).toUpperCase() + string.slice(1); }
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    return capitalizar(dataObj.toLocaleDateString('pt-BR', options));
+}
+
+function mesmoDia(a, b) {
+    return a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate();
+}
+
+function verificarLancamentoPendente() {
+    const modalEl = document.getElementById('modalLembrete');
+    if (!modalEl) return;
+
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+
+    if (DIAS_SEM_CULTO.includes(ontem.getDay())) return;
+
+    const ultimaData = ultimoRelatorioSalvo ? ultimoRelatorioSalvo.timestamp.toDate() : null;
+    if (ultimaData && mesmoDia(ultimaData, ontem)) return;
+
+    document.getElementById('lembrete-data-culto').innerText = formatarDataCurta(ontem);
+
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    document.getElementById('btn-lancar-pendente').addEventListener('click', () => {
+        if (!modoDataManual) btnEsqueci.click();
+        const dataAlvo = new Date(ontem);
+        dataAlvo.setHours(19, 30, 0, 0);
+        dataAlvo.setMinutes(dataAlvo.getMinutes() - dataAlvo.getTimezoneOffset());
+        dataManualInput.value = dataAlvo.toISOString().slice(0, 16);
+    }, { once: true });
+}
+
 // Tenta carregar dados do localStorage ao iniciar
 carregarUltimoLocalmente();
+verificarLancamentoPendente();
