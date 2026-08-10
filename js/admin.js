@@ -67,6 +67,13 @@ const editCamposTrombetas = document.getElementById('edit-campos-trombetas');
 const editContainerMembrosCias = document.getElementById('edit-container-membros-cias');
 const editContainerVisitantesCias = document.getElementById('edit-container-visitantes-cias');
 
+// --- Utilitário: escapa HTML para evitar XSS ao injetar dados do Firestore ---
+function esc(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+}
+
 // --- Variáveis Globais ---
 let todosOsDocumentos = [];
 let nomesDeIgrejas = new Set(); 
@@ -279,12 +286,12 @@ function renderizarTabelaGerais(dados) {
     dados.forEach(doc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${doc.nomeIgreja}</td>
-            <td>${doc.tipoCulto || 'N/D'}</td> 
-            <td>${doc.dataCompleta}</td>
-            <td>${doc.membrosAdultos || 0}</td>
-            <td>${doc.visitantesAdultos || 0}</td>
-            <td><strong>${doc.totalGeral}</strong></td>
+            <td>${esc(doc.nomeIgreja)}</td>
+            <td><span class="badge-culto">${esc(doc.tipoCulto || 'N/D')}</span></td>
+            <td>${esc(doc.dataCompleta)}</td>
+            <td>${Number(doc.membrosAdultos) || 0}</td>
+            <td>${Number(doc.visitantesAdultos) || 0}</td>
+            <td><strong>${Number(doc.totalGeral) || 0}</strong></td>
         `;
         addAcoes(tr, doc.id);
         tabelaResultadosGerais.appendChild(tr);
@@ -301,14 +308,14 @@ function renderizarTabelaEBD(dados) {
     dados.forEach(doc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${doc.nomeIgreja}</td>
-            <td>${doc.tipoCulto || 'N/D'}</td> 
-            <td>${doc.dataCompleta}</td>
-            <td>${doc.membrosAdultos || 0}</td>
-            <td>${doc.membrosCias || 0}</td>
-            <td>${doc.visitantesAdultos || 0}</td>
-            <td>${doc.visitantesCias || 0}</td>
-            <td><strong>${doc.totalGeral}</strong></td>
+            <td>${esc(doc.nomeIgreja)}</td>
+            <td><span class="badge-culto">${esc(doc.tipoCulto || 'N/D')}</span></td>
+            <td>${esc(doc.dataCompleta)}</td>
+            <td>${Number(doc.membrosAdultos) || 0}</td>
+            <td>${Number(doc.membrosCias) || 0}</td>
+            <td>${Number(doc.visitantesAdultos) || 0}</td>
+            <td>${Number(doc.visitantesCias) || 0}</td>
+            <td><strong>${Number(doc.totalGeral) || 0}</strong></td>
         `;
         addAcoes(tr, doc.id);
         tabelaResultadosEBD.appendChild(tr);
@@ -325,17 +332,17 @@ function renderizarTabelaTrombetas(dados) {
     dados.forEach(doc => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${doc.nomeIgreja}<br><small class="text-muted">${doc.tipoCulto}</small></td>
-            <td>${doc.dataCompleta}</td>
-            <td>${doc.trombetasMembrosCriancas || 0}</td>
-            <td>${doc.trombetasMembrosIntermediarios || 0}</td>
-            <td>${doc.trombetasMembrosAdolescentes || 0}</td>
-            <td>${doc.trombetasMembrosAdultos || 0}</td>
-            <td>${doc.trombetasVisitantesCriancas || 0}</td>
-            <td>${doc.trombetasVisitantesIntermediarios || 0}</td>
-            <td>${doc.trombetasVisitantesAdolescentes || 0}</td>
-            <td>${doc.trombetasVisitantesAdultos || 0}</td>
-            <td><strong>${doc.totalGeral}</strong></td>
+            <td>${esc(doc.nomeIgreja)}<br><span class="badge-culto">${esc(doc.tipoCulto)}</span></td>
+            <td>${esc(doc.dataCompleta)}</td>
+            <td>${Number(doc.trombetasMembrosCriancas) || 0}</td>
+            <td>${Number(doc.trombetasMembrosIntermediarios) || 0}</td>
+            <td>${Number(doc.trombetasMembrosAdolescentes) || 0}</td>
+            <td>${Number(doc.trombetasMembrosAdultos) || 0}</td>
+            <td>${Number(doc.trombetasVisitantesCriancas) || 0}</td>
+            <td>${Number(doc.trombetasVisitantesIntermediarios) || 0}</td>
+            <td>${Number(doc.trombetasVisitantesAdolescentes) || 0}</td>
+            <td>${Number(doc.trombetasVisitantesAdultos) || 0}</td>
+            <td><strong>${Number(doc.totalGeral) || 0}</strong></td>
         `;
         addAcoes(tr, doc.id);
         tabelaResultadosTrombetas.appendChild(tr);
@@ -482,7 +489,8 @@ btnSaveEdit.addEventListener('click', async () => {
         
         const docRef = doc(db, "contagens", id);
         const docOriginal = todosOsDocumentos.find(d => d.id === id);
-        const dadosFinais = { ...docOriginal, ...dadosAtualizados };
+        const { id: _idIgnorado, ...docOriginalSemId } = docOriginal;
+        const dadosFinais = { ...docOriginalSemId, ...dadosAtualizados };
 
         await updateDoc(docRef, dadosFinais);
         

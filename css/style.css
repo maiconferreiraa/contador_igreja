@@ -1,0 +1,275 @@
+/* =====================================================
+   Contador ICM — estilo compartilhado (index, login, admin)
+   ===================================================== */
+
+:root {
+    --brand-primary: #4f7cff;
+    --brand-primary-dark: #3a5fe0;
+    --brand-accent: #25D366;
+    --surface-border: rgba(255, 255, 255, 0.08);
+    --surface-glow: rgba(79, 124, 255, 0.15);
+}
+
+body {
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background-color: #0d0f14;
+    background-image:
+        radial-gradient(circle at 15% -10%, rgba(79, 124, 255, 0.20), transparent 45%),
+        radial-gradient(circle at 100% 10%, rgba(37, 211, 102, 0.10), transparent 40%),
+        linear-gradient(180deg, #0d0f14 0%, #12151c 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: var(--bs-body-color);
+}
+
+/* --- Marca / cabeçalho --- */
+.brand-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 1.75rem;
+}
+
+.brand-header .brand-icon {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+    box-shadow: 0 8px 24px -6px var(--surface-glow);
+    font-size: 1.4rem;
+    color: #fff;
+}
+
+.brand-header h2 {
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.brand-header .brand-subtitle {
+    color: var(--bs-secondary-color);
+    font-size: 0.9rem;
+}
+
+/* --- Cards --- */
+.card {
+    background-color: #171b23;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+    border: 1px solid var(--surface-border) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 20px 45px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Inputs / selects --- */
+.form-control,
+.form-select {
+    background-color: #12151c;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.65rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 0.2rem var(--surface-glow);
+}
+
+.form-floating > label {
+    color: var(--bs-secondary-color);
+}
+
+input:disabled, input[readonly] {
+    background-color: #0f1218 !important;
+    opacity: 1 !important;
+}
+
+.modo-edicao {
+    border: 2px solid #ffc107 !important;
+}
+
+/* --- Botões --- */
+.btn {
+    border-radius: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+    border: none;
+    box-shadow: 0 10px 25px -10px var(--surface-glow);
+}
+
+.btn-primary:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 14px 30px -10px var(--surface-glow);
+}
+
+.btn-whatsapp {
+    background-color: var(--brand-accent);
+    border-color: var(--brand-accent);
+    color: white;
+    box-shadow: 0 10px 25px -10px rgba(37, 211, 102, 0.35);
+}
+
+.btn-whatsapp:hover {
+    background-color: #1EAE50;
+    border-color: #1EAE50;
+    color: white;
+}
+
+.btn-outline-warning:hover,
+.btn-outline-info:hover,
+.btn-outline-secondary:hover,
+.btn-outline-primary:hover,
+.btn-outline-danger:hover,
+.btn-outline-light:hover {
+    box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Alertas --- */
+.alert {
+    border-radius: 0.75rem;
+    border: 1px solid transparent;
+}
+
+/* --- Login --- */
+.login-card {
+    width: 100%;
+    max-width: 400px;
+}
+
+.password-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--bs-secondary-color);
+    transition: color 0.15s ease;
+}
+
+.password-icon:hover {
+    color: var(--bs-body-color);
+}
+
+/* --- Admin / dashboard --- */
+.navbar {
+    background: linear-gradient(90deg, #12151c, #171b23) !important;
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.navbar-brand .brand-icon-sm {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+    font-size: 1rem;
+}
+
+.table {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.table > thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #1b1f28;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.25);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+}
+
+.table-hover > tbody > tr:hover > * {
+    background-color: rgba(79, 124, 255, 0.08);
+}
+
+.nav-tabs {
+    border-bottom-color: var(--surface-border);
+}
+
+.nav-tabs .nav-link {
+    color: var(--bs-secondary-color);
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    font-weight: 600;
+    padding: 0.75rem 1.1rem;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--bs-emphasis-color);
+    border-color: var(--surface-border);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--brand-primary);
+    background-color: transparent;
+    border-bottom-color: var(--brand-primary);
+}
+
+.badge-culto {
+    display: inline-block;
+    padding: 0.3em 0.65em;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: rgba(79, 124, 255, 0.15);
+    color: #9db4ff;
+    white-space: nowrap;
+}
+
+.stat-card h3 {
+    font-weight: 700;
+    color: var(--brand-primary);
+}
+
+/* --- Rodapé de crédito --- */
+.developer-credit {
+    opacity: 0.7;
+}
+
+/* --- Scrollbar sutil (webkit) --- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+}
