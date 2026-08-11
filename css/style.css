@@ -44,6 +44,13 @@ body {
     color: #fff;
 }
 
+.brand-header .brand-logo {
+    max-width: 240px;
+    width: 100%;
+    height: auto;
+    margin-bottom: 0.25rem;
+}
+
 .brand-header h2 {
     margin: 0;
     font-weight: 700;
